@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pygobject = "*"
+psutil = "*"
+
+[dev-packages]
+pipenv-setup = "*"
+chardet = "*"
+
+[requires]
+python_version = "3.10"
