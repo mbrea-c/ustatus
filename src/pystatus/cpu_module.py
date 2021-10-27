@@ -1,5 +1,5 @@
 from gi.repository import Gtk, GLib
-from line_graph import LineGraph
+from pystatus.line_graph import LineGraph
 import psutil
 
 
