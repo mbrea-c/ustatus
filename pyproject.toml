@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pystatus"
-version = "0.1.0"
+version = "0.1.1"
 description = "Status window for wayland shells."
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 
@@ -11,6 +11,8 @@ pystatus = "pystatus.main:main"
 python = "^3.10"
 PyGObject = "^3.42.0"
 psutil = "^5.8.0"
+gbulb = "^0.6.2"
+pulsectl-asyncio = "^0.2.0"
 
 [tool.poetry.dev-dependencies]
 

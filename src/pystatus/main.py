@@ -1,4 +1,4 @@
-import gi
+import asyncio, gbulb, gi
 
 gi.require_version("Gtk", "3.0")
 
@@ -18,17 +18,35 @@ except ValueError:
 
 from gi.repository import Gtk, GtkLayerShell
 from pystatus.cpu_module import CpuModule
+from pystatus.battery_module import BatteryModule
+from pystatus.volume_module import VolumeModule
 
 
 def main():
-    window = Gtk.Window()
-    top_level_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    application = Gtk.Application()
+    application.connect("activate", lambda app: build_ui(app))
+    gbulb.install(gtk=True)  # only necessary if you're using GtkApplication
+    loop = asyncio.get_event_loop()
+    loop.run_forever(application=application)
+
+
+def build_ui(application):
+    window = Gtk.Window(application=application)
+    parent = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    top_level_grid = Gtk.Grid()
+    top_level_grid.set_column_homogeneous(False)
+    top_level_grid.set_row_homogeneous(False)
     label = Gtk.Label(label="Status")
     cpu_module = CpuModule()
+    battery_module = BatteryModule()
+    volume_module = VolumeModule()
 
-    top_level_box.add(label)
-    top_level_box.add(cpu_module)
-    window.add(top_level_box)
+    top_level_grid.attach(battery_module, 0, 0, 1, 1)
+    top_level_grid.attach(volume_module, 0, 1, 1, 1)
+    top_level_grid.attach(cpu_module, 1, 0, 1, 2)
+    parent.add(label)
+    parent.add(top_level_grid)
+    window.add(parent)
 
     GtkLayerShell.init_for_window(window)
     # GtkLayerShell.auto_exclusive_zone_enable(window)
@@ -38,4 +56,8 @@ def main():
 
     window.show_all()
     window.connect("destroy", Gtk.main_quit)
-    Gtk.main()
+    # Gtk.main()
+
+
+if __name__ == "__main__":
+    main()
