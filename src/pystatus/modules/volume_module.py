@@ -1,13 +1,15 @@
 from gi.repository import Gtk, GLib
 import pulsectl_asyncio, asyncio
+from pystatus.graphics.volume import Volume
+from pystatus.module import Module
 
 
 class VolumeModule(Gtk.Frame):
-    def __init__(self, min_update_interval_seconds=0.2) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
         container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.sink_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.sink_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         label = Gtk.Label(label="Volume")
 
         container.add(label)
@@ -19,20 +21,17 @@ class VolumeModule(Gtk.Frame):
         self.pulse = pulsectl_asyncio.PulseAsync("pystatus")
 
         self.updater_task = asyncio.create_task(self.__init_async__())
-        # self.update()
-        # GLib.timeout_add(update_period_seconds * 1000, lambda: self.update())
 
     def __update_sinks__(self, name_volume_dict: dict):
         # New additions and updates
         for name, volume in name_volume_dict.items():
             if name in self.sinks.keys():
                 label = self.sinks[name]
-                label.set_label(f"{volume * 100:.0f}%")
+                label.update(volume)
             else:
-                label = Gtk.Label(label=f"{volume * 100:.0f}%")
+                label = SinkVolume(name, volume)
                 self.sink_container.add(label)
                 self.sinks[name] = label
-                label.show()
         # Removals
         for name, label in self.sinks.items():
             if name not in name_volume_dict.keys():
@@ -52,3 +51,22 @@ class VolumeModule(Gtk.Frame):
         }
         self.__update_sinks__(name_volume_dict)
         self.queue_draw()
+
+
+class SinkVolume(Gtk.Box):
+    def __init__(self, name: str, volume: float) -> None:
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.label = Gtk.Label(label=self.__label__(volume))
+        self.meter = Volume(volume)
+        self.meter.set_size_request(25, 25)
+        self.set_tooltip_text(name)
+        self.add(self.meter)
+        self.add(self.label)
+        self.show_all()
+
+    def update(self, volume: float) -> None:
+        self.label.set_label(self.__label__(volume))
+        self.meter.update(volume)
+
+    def __label__(self, volume: float) -> str:
+        return f"{volume * 100:.0f}%"

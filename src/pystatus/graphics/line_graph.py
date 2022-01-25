@@ -3,16 +3,14 @@ from collections import deque
 
 
 class LineGraph(Gtk.DrawingArea):
-    def __init__(self, values=[], maxlen=10) -> None:
+    def __init__(self, n_values=100) -> None:
         super().__init__()
-
-        seed = [0] * (maxlen - len(values)) + values
-
-        self.values = deque(seed, maxlen=maxlen)
+        self.n_values = n_values
+        self.values = [0] * n_values
         self.connect("draw", lambda area, context: self.draw_line_graph(area, context))
 
-    def push_values(self, new_values):
-        self.values.extend(new_values)
+    def set_values(self, new_values):
+        self.values = new_values
         self.queue_draw()
 
     def draw_line_graph(self, area, context):

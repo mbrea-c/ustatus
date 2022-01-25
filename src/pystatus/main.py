@@ -1,6 +1,7 @@
 import asyncio, gbulb, gi
 
 gi.require_version("Gtk", "3.0")
+gi.require_version("DbusmenuGtk3", "0.4")
 
 try:
     gi.require_version("GtkLayerShell", "0.1")
@@ -16,10 +17,12 @@ except ValueError:
         + " ".join(sys.argv)
     )
 
-from gi.repository import Gtk, GtkLayerShell
-from pystatus.cpu_module import CpuModule
-from pystatus.battery_module import BatteryModule
-from pystatus.volume_module import VolumeModule
+from gi.repository import Gtk, GtkLayerShell, Gdk
+from pystatus.modules.cpu_module import CpuModule
+from pystatus.modules.battery_module import BatteryModule
+from pystatus.modules.volume_module import VolumeModule
+from pystatus.modules.tray_module import TrayModule
+from pystatus.remote_service import init_service
 
 
 def main():
@@ -33,19 +36,18 @@ def main():
 def build_ui(application):
     window = Gtk.Window(application=application)
     parent = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    top_level_grid = Gtk.Grid()
-    top_level_grid.set_column_homogeneous(False)
-    top_level_grid.set_row_homogeneous(False)
     label = Gtk.Label(label="Status")
+    setup_module_css()
     cpu_module = CpuModule()
     battery_module = BatteryModule()
     volume_module = VolumeModule()
+    tray_module = TrayModule()
 
-    top_level_grid.attach(battery_module, 0, 0, 1, 1)
-    top_level_grid.attach(volume_module, 0, 1, 1, 1)
-    top_level_grid.attach(cpu_module, 1, 0, 1, 2)
     parent.add(label)
-    parent.add(top_level_grid)
+    parent.add(battery_module)
+    parent.add(volume_module)
+    parent.add(cpu_module)
+    parent.add(tray_module)
     window.add(parent)
 
     GtkLayerShell.init_for_window(window)
@@ -56,7 +58,19 @@ def build_ui(application):
 
     window.show_all()
     window.connect("destroy", Gtk.main_quit)
-    # Gtk.main()
+
+    print("About to run create task")
+    asyncio.create_task(init_service(lambda: window.hide(), lambda: window.show()))
+
+
+def setup_module_css():
+    screen = Gdk.Screen.get_default()
+    provider = Gtk.CssProvider()
+    style_context = Gtk.StyleContext()
+    style_context.add_provider_for_screen(
+        screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    )
+    provider.load_from_data(".module-button {padding: 0;}".encode())
 
 
 if __name__ == "__main__":

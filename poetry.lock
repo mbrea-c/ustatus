@@ -1,4 +1,12 @@
 [[package]]
+name = "dbus-next"
+version = "0.2.3"
+description = "A zero-dependency DBus library for Python with asyncio support"
+category = "main"
+optional = false
+python-versions = ">=3.6.0"
+
+[[package]]
 name = "gbulb"
 version = "0.6.2"
 description = "GLib event loop for tulip (PEP 3156)"
@@ -58,12 +66,24 @@ python-versions = ">=3.6, <4"
 [package.dependencies]
 pycairo = ">=1.16,<2.0"
 
+[[package]]
+name = "tomli"
+version = "1.2.2"
+description = "A lil' TOML parser"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "4990eb89a81e8ba8f7afa51d7c59a9da19c659172538530669e83ce1a8382b49"
+content-hash = "3a9ea7080db77a47300de3f6da099d80ef48faf6b1e810a55d12187cb391bd24"
 
 [metadata.files]
+dbus-next = [
+    {file = "dbus_next-0.2.3-py3-none-any.whl", hash = "sha256:58948f9aff9db08316734c0be2a120f6dc502124d9642f55e90ac82ffb16a18b"},
+    {file = "dbus_next-0.2.3.tar.gz", hash = "sha256:f4eae26909332ada528c0a3549dda8d4f088f9b365153952a408e28023a626a5"},
+]
 gbulb = [
     {file = "gbulb-0.6.2-py2.py3-none-any.whl", hash = "sha256:0e79e7e614a69a728cf9c2d8f2d802c9b71bf9b2c49bad5b19b322dd33c8ec5e"},
     {file = "gbulb-0.6.2.tar.gz", hash = "sha256:0d627ce1264adfa90b85f72189a8ceee9c77648b0408f0cfc97b04f7191686fa"},
@@ -121,4 +141,8 @@ pycairo = [
 ]
 pygobject = [
     {file = "PyGObject-3.42.0.tar.gz", hash = "sha256:b9803991ec0b0b4175e81fee0ad46090fa7af438fe169348a9b18ae53447afcd"},
+]
+tomli = [
+    {file = "tomli-1.2.2-py3-none-any.whl", hash = "sha256:f04066f68f5554911363063a30b108d2b5a5b1a010aa8b6132af78489fe3aade"},
+    {file = "tomli-1.2.2.tar.gz", hash = "sha256:c6ce0015eb38820eaf32b5db832dbc26deb3dd427bd5f6556cf0acac2c214fee"},
 ]
