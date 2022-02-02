@@ -47,7 +47,7 @@ class CpuModuleModalWidget(Gtk.Box):
         super().__init__()
         self.set_orientation(Gtk.Orientation.VERTICAL)
         label = Gtk.Label(label="CPU Usage")
-        core_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        core_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         cpu_info = get_core_per_cpu()
         core_ids = list(set(cpu_info))
         cores = [Core(id) for id in core_ids]

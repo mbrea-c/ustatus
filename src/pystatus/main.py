@@ -1,5 +1,6 @@
 import asyncio, gbulb, gi
 
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("DbusmenuGtk3", "0.4")
 
@@ -21,6 +22,7 @@ from gi.repository import Gtk, GtkLayerShell, Gdk
 from pystatus.modules.cpu_module import CpuModule
 from pystatus.modules.battery_module import BatteryModule
 from pystatus.modules.volume_module import VolumeModule
+from pystatus.modules.mpris_module import MprisModule
 from pystatus.modules.tray_module import TrayModule
 from pystatus.remote_service import init_service
 
@@ -42,10 +44,12 @@ def build_ui(application):
     battery_module = BatteryModule()
     volume_module = VolumeModule()
     tray_module = TrayModule()
+    mpris_module = MprisModule()
 
     parent.add(label)
     parent.add(battery_module)
     parent.add(volume_module)
+    parent.add(mpris_module)
     parent.add(cpu_module)
     parent.add(tray_module)
     window.add(parent)

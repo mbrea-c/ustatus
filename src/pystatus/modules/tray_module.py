@@ -56,7 +56,7 @@ class TrayModule(Module):
 
     def __item_removed__(self, merged_string: str):
         bus_name, obj_path = service_path_from_merged(merged_string)
-        raise NotImplementedError()
+        self.module_widget.remove_item(bus_name)
 
     async def __init_watcher__(self):
         bus = await MessageBus().connect()
@@ -73,18 +73,24 @@ class TrayModule(Module):
         await asyncio.get_event_loop().create_future()
 
 
-class TrayWidget(Gtk.Box):
+class TrayWidget(Gtk.FlowBox):
     def __init__(self):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL)
-        self.items = []
+        super().__init__()
+        self.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.items = dict()
 
     def update(self):
         self.show_all()
 
     def new_item(self, item):
-        self.items.append(item)
+        self.items[item.bus_name] = item
         self.add(item)
         self.update()
+
+    def remove_item(self, bus_name):
+        if bus_name in self.items:
+            item = self.items[bus_name]
+            self.remove(item)
 
 
 class TrayItem(Gtk.Box):
@@ -96,13 +102,16 @@ class TrayItem(Gtk.Box):
     @classmethod
     async def init(cls, bus_name, obj_path):
         obj = cls()
-        obj.temp_label = Gtk.Label(label="")
-        obj.button = Gtk.Button()
+
         obj.button_icon = Gtk.Image()
+
+        obj.button = Gtk.Button()
+        obj.button.set_relief(Gtk.ReliefStyle.NONE)
         obj.button.set_image(obj.button_icon)
+        obj.button.set_focus_on_click(False)
+
         Module.__remove_button_frame__(obj.button)
         obj.add(obj.button)
-        obj.add(obj.temp_label)
         obj.bus_name = bus_name
         obj.obj_path = obj_path
         obj.bus = await MessageBus().connect()
@@ -127,15 +136,13 @@ class TrayItem(Gtk.Box):
 
     async def __get_id__(self):
         self.id = await self.interface.get_id()
-        self.temp_label.set_label(self.id)
-        self.show_all()
 
     async def __get_title__(self):
         self.title = await self.interface.get_title()
 
     async def __get_icon_name__(self):
         self.icon_name = await self.interface.get_icon_name()
-        self.button_icon.set_from_icon_name(self.icon_name, Gtk.IconSize.SMALL_TOOLBAR)
+        self.button_icon.set_from_icon_name(self.icon_name, Gtk.IconSize.LARGE_TOOLBAR)
         self.show_all()
 
     async def __get_menu_path__(self):
@@ -144,7 +151,8 @@ class TrayItem(Gtk.Box):
     async def __get_menu__(self):
         await self.__get_menu_path__()
         self.menu = DbusmenuGtk3.Menu.new(self.bus_name, self.menu_path)
-        self.menu.attach_to_widget(self)
+        self.menu.attach_to_widget(self.button)
+        self.menu.set_take_focus(True)
         self.button.connect("clicked", self.__on_button_clicked__)
         self.show_all()
 
@@ -152,7 +160,6 @@ class TrayItem(Gtk.Box):
         self.menu.popup_at_widget(
             widget, Gdk.Gravity.CENTER, Gdk.Gravity.NORTH_WEST, None
         )
-        self.show_all()
 
 
 class StatusNotifierWatcher(ServiceInterface):

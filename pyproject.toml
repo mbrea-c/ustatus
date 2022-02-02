@@ -15,6 +15,7 @@ gbulb = "^0.6.2"
 pulsectl-asyncio = "^0.2.0"
 tomli = "^1.2.2"
 dbus-next = "^0.2.3"
+jsonschema = "^4.4.0"
 
 [tool.poetry.dev-dependencies]
 
