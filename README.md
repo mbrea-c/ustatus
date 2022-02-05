@@ -16,6 +16,8 @@ the wlr-layer-shell protocol.
   - MPRIS module.
   - Battery module.
   - Volume module.
+- Remote interface through dbus, currently allowing:
+  - Show/hide/toggle bar or status window.
 
 ## Running without installing
 
