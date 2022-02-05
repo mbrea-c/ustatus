@@ -3,6 +3,8 @@
 Configurable status window and/or bar for wayland compositors with support for
 the wlr-layer-shell protocol.
 
+![Screenshot](pystatus.png)
+
 ## Features
 
 - TOML configuration.
