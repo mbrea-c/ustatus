@@ -20,9 +20,9 @@ class VolumeModule(Gtk.Frame):
         self.sinks = dict()
         self.pulse = pulsectl_asyncio.PulseAsync("pystatus")
 
-        self.updater_task = asyncio.create_task(self.__init_async__())
+        self.updater_task = asyncio.create_task(self._init_async())
 
-    def __update_sinks__(self, name_volume_dict: dict):
+    def _update_sinks(self, name_volume_dict: dict):
         # New additions and updates
         for name, volume in name_volume_dict.items():
             if name in self.sinks.keys():
@@ -38,25 +38,25 @@ class VolumeModule(Gtk.Frame):
                 self.sink_container.remove(label)
                 self.sinks.pop(name)
 
-    async def __init_async__(self):
+    async def _init_async(self):
         await self.pulse.connect()
-        await self.__update__()
+        await self._update()
         async for _ in self.pulse.subscribe_events("all"):
-            await self.__update__()
+            await self._update()
 
-    async def __update__(self) -> None:
+    async def _update(self) -> None:
         sinks = await self.pulse.sink_list()
         name_volume_dict = {
             s.name: await self.pulse.volume_get_all_chans(s) for s in sinks
         }
-        self.__update_sinks__(name_volume_dict)
+        self._update_sinks(name_volume_dict)
         self.queue_draw()
 
 
 class SinkVolume(Gtk.Box):
     def __init__(self, name: str, volume: float) -> None:
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        self.label = Gtk.Label(label=self.__label__(volume))
+        self.label = Gtk.Label(label=self._label(volume))
         self.meter = Volume(volume)
         self.meter.set_size_request(25, 25)
         self.set_tooltip_text(name)
@@ -65,8 +65,8 @@ class SinkVolume(Gtk.Box):
         self.show_all()
 
     def update(self, volume: float) -> None:
-        self.label.set_label(self.__label__(volume))
+        self.label.set_label(self._label(volume))
         self.meter.update(volume)
 
-    def __label__(self, volume: float) -> str:
+    def _label(self, volume: float) -> str:
         return f"{volume * 100:.0f}%"

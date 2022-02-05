@@ -1,1 +1,17 @@
+[bars.status]
+modules = ["volume", "battery", "mpris", "cpu", "tray"]
 
+[modules.volume]
+type = "volume"
+
+[modules.battery]
+type = "battery"
+
+[modules.mpris]
+type = "mpris"
+
+[modules.cpu]
+type = "cpu"
+
+[modules.tray]
+type = "tray"

@@ -7,7 +7,7 @@ class Module(Gtk.Frame):
         self.module_widget = module_widget
         self.add(self.module_widget)
 
-    def __update__(self):
+    def _update(self):
         raise NotImplementedError()
 
     def get_popover_menubutton(self, modal_widget: Gtk.Widget):
@@ -37,5 +37,5 @@ class ModuleWithModal(Module):
         self.module_widget = module_widget
         self.modal_widget = modal_widget
 
-    def __update_modal__(self):
+    def _update_modal(self):
         raise NotImplementedError()

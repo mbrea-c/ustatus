@@ -10,18 +10,17 @@ class BatteryModule(ModuleWithModal):
         modal_widget = BatteryWidget()
         super().__init__(module_widget, modal_widget)
 
-        self.__update__()
-        GLib.timeout_add(update_period_seconds * 1000, lambda: self.__update__())
+        self._update()
+        GLib.timeout_add(update_period_seconds * 1000, lambda: self._update())
 
-        self.__update_modal__()
-        GLib.timeout_add(update_period_seconds * 1000, lambda:
-            self.__update_modal__())
+        self._update_modal()
+        GLib.timeout_add(update_period_seconds * 1000, lambda: self._update_modal())
 
-    def __update__(self) -> bool:
+    def _update(self) -> bool:
         self.module_widget.update()
         return True
 
-    def __update_modal__(self) -> bool:
+    def _update_modal(self) -> bool:
         self.modal_widget.update()
         return True
 

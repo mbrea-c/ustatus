@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pystatus"
-version = "0.1.5"
+version = "0.1.6"
 description = "Status window for wayland shells."
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 

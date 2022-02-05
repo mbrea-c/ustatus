@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
@@ -11,7 +12,7 @@ import asyncio
 class MprisModule(Module):
     def __init__(self, update_period_seconds=3) -> None:
 
-        self.modal_widget = MprisModalWidget(self.__on_select_player_callback__)
+        self.modal_widget = MprisModalWidget(self._on_select_player_callback)
         modal_menubutton = self.get_popover_menubutton(self.modal_widget)
         self.module_widget = MprisWidget(modal_menubutton)
         self.bus_names: Set[str] = set()
@@ -20,16 +21,13 @@ class MprisModule(Module):
 
         super().__init__(self.module_widget)
 
-    def __update__(self) -> bool:
+    def _update(self) -> bool:
         return True
 
-    def __update_modal__(self) -> bool:
+    def _update_modal(self) -> bool:
         return True
 
-    def __on_name_lost_callback__(self, name: str):
-        print(f"sometihng's up n:{name}")
-
-    def __on_name_owner_changed_callback__(
+    def _on_name_owner_changed_callback(
         self, name: str, old_owner: str, new_owner: str
     ):
         if name.startswith("org.mpris.MediaPlayer2"):
@@ -38,36 +36,73 @@ class MprisModule(Module):
             else:
                 self.bus_names.remove(name)
                 if self.selected_player == name:
-                    self.__on_select_player_callback__(None)
+                    self._on_select_player_callback(None)
             self.modal_widget.set_items(self.bus_names)
 
-    def __on_play_pause_callback__(self):
+    def _on_play_pause_callback(self):
         if self.mpris_interface:
-            asyncio.create_task(self.__on_play_pause__())
+            asyncio.create_task(self._on_play_pause())
 
-    async def __on_play_pause__(self):
+    async def _on_play_pause(self):
         await self.mpris_interface.call_play_pause()
 
-    def __on_properties_changed_callback__(self, bus_name, props, other):
+    def _on_next_callback(self):
+        if self.mpris_interface:
+            asyncio.create_task(self._on_next())
+
+    async def _on_next(self):
+        await self.mpris_interface.call_next()
+
+    def _on_prev_callback(self):
+        if self.mpris_interface:
+            asyncio.create_task(self._on_prev())
+
+    async def _on_prev(self):
+        await self.mpris_interface.call_previous()
+
+    def _on_properties_changed_callback(self, bus_name, props, other):
         asyncio.create_task(self.__on_properties_changed__(props))
+
+    def handle_change_playback_status(self, value: str):
+        self.module_widget.set_playback_status(value)
+
+    def handle_change_can_go_next(self, value: bool):
+        if value:
+            self.module_widget.set_on_next(self._on_next_callback)
+        else:
+            self.module_widget.set_on_next(None)
+
+    def handle_change_can_go_previous(self, value: bool):
+        if value:
+            self.module_widget.set_on_previous(self._on_prev_callback)
+        else:
+            self.module_widget.set_on_previous(None)
 
     async def __on_properties_changed__(self, props: Dict[str, Any]):
         for key in props.keys():
             if key == "PlaybackStatus":
                 playback_status = props[key].value
                 assert isinstance(playback_status, str)
-                self.module_widget.set_playback_status(playback_status)
+                self.handle_change_playback_status(playback_status)
+            elif key == "CanGoNext":
+                can_go_next = props[key].value
+                assert isinstance(can_go_next, bool)
+                self.handle_change_can_go_next(can_go_next)
+            elif key == "CanGoPrevious":
+                can_go_prev = props[key].value
+                assert isinstance(can_go_prev, bool)
+                self.handle_change_can_go_previous(can_go_prev)
             elif key == "Metadata":
                 title = props[key].value.get("xesam:title")
                 if title:
                     title = title.value
                 self.modal_widget.set_title(title)
 
-    def __on_select_player_callback__(self, name):
-        asyncio.create_task(self.__select_player__(name))
+    def _on_select_player_callback(self, name):
+        asyncio.create_task(self._select_player(name))
 
-    async def __select_player__(self, bus_name: Optional[str]):
-        print(f"binding with {bus_name}")
+    async def _select_player(self, bus_name: Optional[str]):
+        logging.info(f"binding with {bus_name}")
         obj_path = "/org/mpris/MediaPlayer2"
         mpris_interface_name = "org.mpris.MediaPlayer2.Player"
         props_interface_name = "org.freedesktop.DBus.Properties"
@@ -82,21 +117,29 @@ class MprisModule(Module):
 
             self.selected_player = bus_name
             self.mpris_props_interface.on_properties_changed(
-                self.__on_properties_changed_callback__
+                self._on_properties_changed_callback
             )
-            self.module_widget.set_on_play_pause(self.__on_play_pause_callback__)
-            self.modal_widget.set_title(await self.__get_title__())
-            self.module_widget.set_playback_status(
-                await self.mpris_interface.get_playback_status()
-            )
+            self.module_widget.set_on_play_pause(self._on_play_pause_callback)
+            self.modal_widget.set_title(await self._get_title())
+
+            playback_status = await self.mpris_interface.get_playback_status()
+            self.handle_change_playback_status(playback_status)
+
+            can_go_next = await self.mpris_interface.get_can_go_next()
+            self.handle_change_can_go_next(can_go_next)
+
+            can_go_prev = await self.mpris_interface.get_can_go_previous()
+            self.handle_change_can_go_previous(can_go_prev)
         else:
             self.mpris_interface = None
             self.mpris_props_interface = None
             self.selected_player = None
             self.module_widget.set_on_play_pause(None)
-            self.module_widget.set_playback_status("Paused")
+            self.handle_change_playback_status("Paused")
+            self.handle_change_can_go_next(False)
+            self.handle_change_can_go_prev(False)
 
-    async def __get_title__(self):
+    async def _get_title(self):
         metadata: Dict = await self.mpris_interface.get_metadata()
         title = metadata.get("xesam:title")
         if title:
@@ -112,9 +155,7 @@ class MprisModule(Module):
         proxy_object = self.bus.get_proxy_object(bus_name, obj_path, introspection)
         self.dbus_interface = proxy_object.get_interface("org.freedesktop.DBus")
 
-        self.dbus_interface.on_name_owner_changed(
-            self.__on_name_owner_changed_callback__
-        )
+        self.dbus_interface.on_name_owner_changed(self._on_name_owner_changed_callback)
 
         names = await self.dbus_interface.call_list_names()
         for name in names:
@@ -187,6 +228,33 @@ class MprisWidget(Gtk.Grid):
             self.on_play_pause = None
             self.button_play.disconnect(self.button_play_handler_id)
             self.button_play.set_sensitive(False)
+
+    def set_on_next(self, on_next: Optional[Callable]):
+        if on_next:
+            self.on_next = on_next
+            self.button_next_handler_id = self.button_next.connect(
+                "clicked", lambda button: on_next()
+            )
+            self.button_next.set_sensitive(True)
+        else:
+            self.on_next = None
+            if hasattr(self, "button_next_handler_id"):
+                self.button_next.disconnect(self.button_next_handler_id)
+            self.button_next.set_sensitive(False)
+
+    def set_on_previous(self, on_prev: Optional[Callable]):
+        if on_prev:
+            self.on_prev = on_prev
+            self.button_prev_handler_id = self.button_prev.connect(
+                "clicked", lambda button: on_prev()
+            )
+            self.button_prev.set_sensitive(True)
+        else:
+            self.on_prev = None
+            if hasattr(self, "button_prev_handler_id"):
+                self.button_prev.disconnect(self.button_prev_handler_id)
+
+            self.button_prev.set_sensitive(False)
 
 
 class MprisModalWidget(Gtk.Box):

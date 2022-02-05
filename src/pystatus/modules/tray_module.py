@@ -12,15 +12,15 @@ class TrayModule(Module):
         self.module_widget = TrayWidget()
         super().__init__(self.module_widget)
 
-        self.__update__()
-        GLib.timeout_add(update_period_seconds * 1000, lambda: self.__update__())
+        self._update()
+        GLib.timeout_add(update_period_seconds * 1000, lambda: self._update())
 
         # Not start another watcher yet, as we are still running swaybar
         # self.watcher_task = asyncio.create_task(self.__init_watcher__())
         self.host_task = asyncio.create_task(self.__init_host__())
         self.attach_to_watcher_task = asyncio.create_task(self.__attach_to_watcher__())
 
-    def __update__(self) -> bool:
+    def _update(self) -> bool:
         self.module_widget.update()
         return True
 

@@ -15,15 +15,15 @@ class CpuModule(ModuleWithModal):
         self.history_length = history_length
         self.history = CpuHistory(maxlen=history_length)
         super().__init__(module_widget, modal_widget)
-        GLib.timeout_add(uptate_period_seconds * 1000, lambda: self.__update__())
-        GLib.timeout_add(uptate_period_seconds * 1000, lambda: self.__update_modal__())
+        GLib.timeout_add(uptate_period_seconds * 1000, lambda: self._update())
+        GLib.timeout_add(uptate_period_seconds * 1000, lambda: self._update_modal())
 
-    def __update__(self):
+    def _update(self):
         self.history.update()
         self.module_widget.update(self.history.peek_one())
         return True
 
-    def __update_modal__(self):
+    def _update_modal(self):
         self.modal_widget.update(self.history.peek_n(self.history_length))
         return True
 

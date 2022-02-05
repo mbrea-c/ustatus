@@ -1,5 +1,4 @@
-import asyncio, gbulb, gi
-
+import asyncio, gbulb, gi, argparse, logging, logging.handlers
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("DbusmenuGtk3", "0.4")
@@ -19,39 +18,44 @@ except ValueError:
     )
 
 from gi.repository import Gtk, GtkLayerShell, Gdk
-from pystatus.modules.cpu_module import CpuModule
-from pystatus.modules.battery_module import BatteryModule
-from pystatus.modules.volume_module import VolumeModule
-from pystatus.modules.mpris_module import MprisModule
-from pystatus.modules.tray_module import TrayModule
 from pystatus.remote_service import init_service
+from pystatus.config import instantiate_modules_for_bar, read_config
 
 
 def main():
+    setup_logging()
+    parser = argparse.ArgumentParser(
+        description="Start a pystatus instance of the bar of given name."
+    )
+    parser.add_argument(
+        "bar_name",
+        metavar="bar",
+        type=str,
+        help="name of the bar to spawn",
+    )
+    args = parser.parse_args()
+    bar_name = args.bar_name
     application = Gtk.Application()
-    application.connect("activate", lambda app: build_ui(app))
+    application.connect("activate", lambda app: build_ui(app, bar_name))
     gbulb.install(gtk=True)  # only necessary if you're using GtkApplication
     loop = asyncio.get_event_loop()
     loop.run_forever(application=application)
 
 
-def build_ui(application):
+def build_ui(application, bar_name):
     window = Gtk.Window(application=application)
     parent = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     label = Gtk.Label(label="Status")
     setup_module_css()
-    cpu_module = CpuModule()
-    battery_module = BatteryModule()
-    volume_module = VolumeModule()
-    tray_module = TrayModule()
-    mpris_module = MprisModule()
+
+    config = read_config()
+
+    modules = instantiate_modules_for_bar(bar_name, config)
 
     parent.add(label)
-    parent.add(battery_module)
-    parent.add(volume_module)
-    parent.add(mpris_module)
-    parent.add(cpu_module)
-    parent.add(tray_module)
+
+    for module in modules:
+        parent.add(module)
     window.add(parent)
 
     GtkLayerShell.init_for_window(window)
@@ -63,8 +67,9 @@ def build_ui(application):
     window.show_all()
     window.connect("destroy", Gtk.main_quit)
 
-    print("About to run create task")
-    asyncio.create_task(init_service(lambda: window.hide(), lambda: window.show()))
+    asyncio.create_task(
+        init_service(lambda: window.hide(), lambda: window.show(), bar_name)
+    )
 
 
 def setup_module_css():
@@ -75,6 +80,17 @@ def setup_module_css():
         screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
     provider.load_from_data(".module-button {padding: 0;}".encode())
+
+
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        style="{",
+        format="[{levelname}({name}):{filename}:{funcName}] {message}",
+    )
+    root_logger = logging.getLogger()
+    sys_handler = logging.handlers.SysLogHandler(address="/dev/log")
+    root_logger.addHandler(sys_handler)
 
 
 if __name__ == "__main__":
