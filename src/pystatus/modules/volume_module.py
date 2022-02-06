@@ -33,10 +33,13 @@ class VolumeModule(Gtk.Frame):
                 self.sink_container.add(label)
                 self.sinks[name] = label
         # Removals
+        pending_removal = []
         for name, label in self.sinks.items():
             if name not in name_volume_dict.keys():
-                self.sink_container.remove(label)
-                self.sinks.pop(name)
+                pending_removal.append((name, label))
+        for name, label in pending_removal:
+            self.sink_container.remove(label)
+            self.sinks.pop(name)
 
     async def _init_async(self):
         await self.pulse.connect()
