@@ -9,12 +9,17 @@ import itertools
 
 
 class CpuModule(ModuleWithModal):
-    def __init__(self, uptate_period_seconds=3, history_length=20) -> None:
+    def __init__(
+        self,
+        gtk_orientation: Gtk.Orientation,
+        uptate_period_seconds=3,
+        history_length=20,
+    ) -> None:
         module_widget = CpuModuleWidget()
         modal_widget = CpuModuleModalWidget(history_length=history_length)
         self.history_length = history_length
         self.history = CpuHistory(maxlen=history_length)
-        super().__init__(module_widget, modal_widget)
+        super().__init__(module_widget, modal_widget, gtk_orientation=gtk_orientation)
         GLib.timeout_add(uptate_period_seconds * 1000, lambda: self._update())
         GLib.timeout_add(uptate_period_seconds * 1000, lambda: self._update_modal())
 

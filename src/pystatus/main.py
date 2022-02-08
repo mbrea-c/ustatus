@@ -19,7 +19,12 @@ except ValueError:
 
 from gi.repository import Gtk, GtkLayerShell, Gdk
 from pystatus.remote_service import init_service
-from pystatus.config import instantiate_modules_for_bar, read_config
+from pystatus.config import Config, ConfigError
+from pystatus.modules.battery_module import BatteryModule
+from pystatus.modules.cpu_module import CpuModule
+from pystatus.modules.mpris_module import MprisModule
+from pystatus.modules.tray_module import TrayModule
+from pystatus.modules.volume_module import VolumeModule
 
 
 def main():
@@ -35,41 +40,97 @@ def main():
     )
     args = parser.parse_args()
     bar_name = args.bar_name
+    gbulb.install(gtk=True)  # only necessary if you're using GtkApplication
     application = Gtk.Application()
     application.connect("activate", lambda app: build_ui(app, bar_name))
-    gbulb.install(gtk=True)  # only necessary if you're using GtkApplication
     loop = asyncio.get_event_loop()
     loop.run_forever(application=application)
 
 
 def build_ui(application, bar_name):
-    window = Gtk.Window(application=application)
-    parent = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    label = Gtk.Label(label="Status")
-    setup_module_css()
+    config = Config()
+    pystatus = Pystatus(application, bar_name, config)
 
-    config = read_config()
 
-    modules = instantiate_modules_for_bar(bar_name, config)
+class Pystatus(Gtk.Window):
+    def __init__(self, application: Gtk.Application, bar_name: str, config: Config):
+        super().__init__(application=application)
 
-    parent.add(label)
+        self.config = config
+        self.bar_name = bar_name
+        self.box = Gtk.Box()
+        self.config_box()
+        setup_module_css()
 
-    for module in modules:
-        parent.add(module)
-    window.add(parent)
+        modules = self.instantiate_modules()
 
-    GtkLayerShell.init_for_window(window)
-    # GtkLayerShell.auto_exclusive_zone_enable(window)
-    # GtkLayerShell.set_margin(window, GtkLayerShell.Edge.TOP, 10)
-    # GtkLayerShell.set_margin(window, GtkLayerShell.Edge.BOTTOM, 10)
-    GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.RIGHT, 1)
+        self.add(self.box)
 
-    window.show_all()
-    window.connect("destroy", Gtk.main_quit)
+        self.setup_layer_shell()
 
-    asyncio.create_task(
-        init_service(lambda: window.hide(), lambda: window.show(), bar_name)
-    )
+        self.show_all()
+        self.connect("destroy", Gtk.main_quit)
+
+        asyncio.create_task(
+            init_service(lambda: self.hide(), lambda: self.show(), bar_name)
+        )
+
+    def setup_layer_shell(self):
+        GtkLayerShell.init_for_window(self)
+        for anchor in self.config.get_entry_for_bar(self.bar_name, "anchors"):
+            match anchor:
+                case "right":
+                    GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, 1)
+                case "left":
+                    GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, 1)
+                case "top":
+                    GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, 1)
+                case "bottom":
+                    GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, 1)
+                case _:
+                    raise ConfigError(f"Anchor point {anchor} not defined.")
+        # window.set_size_request(100, 100)
+        # window.resize(100, 100)
+
+    def config_box(self):
+        match self.config.get_entry_for_bar(self.bar_name, "orientation"):
+            case "horizontal":
+                self.gtk_orientation = Gtk.Orientation.HORIZONTAL
+                self.box.set_orientation(self.gtk_orientation)
+            case "vertical":
+                self.gtk_orientation = Gtk.Orientation.VERTICAL
+                self.box.set_orientation(self.gtk_orientation)
+            case other:
+                raise ConfigError(f"Orientation {other} not defined.")
+
+    def instantiate_modules(self):
+        module_names = self.config.get_entry_for_bar(self.bar_name, "modules")
+
+        self.modules = []
+        for module_name in module_names:
+            match self.config.get_entry_for_module(module_name, "type"):
+                case "volume":
+                    self.modules.append(
+                        VolumeModule(gtk_orientation=self.gtk_orientation)
+                    )
+                case "battery":
+                    self.modules.append(
+                        BatteryModule(gtk_orientation=self.gtk_orientation)
+                    )
+                case "mpris":
+                    self.modules.append(
+                        MprisModule(gtk_orientation=self.gtk_orientation)
+                    )
+                case "cpu":
+                    self.modules.append(CpuModule(gtk_orientation=self.gtk_orientation))
+                case "tray":
+                    self.modules.append(
+                        TrayModule(gtk_orientation=self.gtk_orientation)
+                    )
+                case other:
+                    raise ConfigError(f"Module type {other} not defined.")
+        for module in self.modules:
+            self.box.add(module)
 
 
 def setup_module_css():

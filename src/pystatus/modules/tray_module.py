@@ -8,9 +8,9 @@ import asyncio
 
 
 class TrayModule(Module):
-    def __init__(self, update_period_seconds=3) -> None:
-        self.module_widget = TrayWidget()
-        super().__init__(self.module_widget)
+    def __init__(self, gtk_orientation, update_period_seconds=3) -> None:
+        self.module_widget = TrayWidget(orientation=gtk_orientation)
+        super().__init__(self.module_widget, gtk_orientation=gtk_orientation)
 
         self._update()
         GLib.timeout_add(update_period_seconds * 1000, lambda: self._update())
@@ -74,8 +74,13 @@ class TrayModule(Module):
 
 
 class TrayWidget(Gtk.FlowBox):
-    def __init__(self):
+    def __init__(self, orientation=Gtk.Orientation.HORIZONTAL):
         super().__init__()
+        match orientation:
+            case Gtk.Orientation.HORIZONTAL:
+                self.set_orientation(Gtk.Orientation.VERTICAL)
+            case Gtk.Orientation.VERTICAL:
+                self.set_orientation(Gtk.Orientation.HORIZONTAL)
         self.set_selection_mode(Gtk.SelectionMode.NONE)
         self.items = dict()
 

@@ -5,11 +5,11 @@ from pystatus.module import Module
 
 
 class VolumeModule(Gtk.Frame):
-    def __init__(self) -> None:
+    def __init__(self, gtk_orientation: Gtk.Orientation) -> None:
         super().__init__()
 
         container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.sink_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.sink_container = Gtk.Box(orientation=gtk_orientation, spacing=5)
         label = Gtk.Label(label="Volume")
 
         container.add(label)
@@ -21,6 +21,7 @@ class VolumeModule(Gtk.Frame):
         self.pulse = pulsectl_asyncio.PulseAsync("pystatus")
 
         self.updater_task = asyncio.create_task(self._init_async())
+        self.update_lock = False
 
     def _update_sinks(self, name_volume_dict: dict):
         # New additions and updates
@@ -48,12 +49,15 @@ class VolumeModule(Gtk.Frame):
             await self._update()
 
     async def _update(self) -> None:
-        sinks = await self.pulse.sink_list()
-        name_volume_dict = {
-            s.name: await self.pulse.volume_get_all_chans(s) for s in sinks
-        }
-        self._update_sinks(name_volume_dict)
-        self.queue_draw()
+        if not self.update_lock:
+            self.update_lock = True
+            sinks = await self.pulse.sink_list()
+            name_volume_dict = {
+                s.name: await self.pulse.volume_get_all_chans(s) for s in sinks
+            }
+            self._update_sinks(name_volume_dict)
+            self.queue_draw()
+            self.update_lock = False
 
 
 class SinkVolume(Gtk.Box):

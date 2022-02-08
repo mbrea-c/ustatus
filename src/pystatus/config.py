@@ -3,27 +3,37 @@ from typing import Dict
 import tomli
 import os.path
 import os
-from pystatus.modules.battery_module import BatteryModule
-from pystatus.modules.cpu_module import CpuModule
-from pystatus.modules.mpris_module import MprisModule
-from pystatus.modules.tray_module import TrayModule
-from pystatus.modules.volume_module import VolumeModule
 
 
-def read_config():
-    paths = ["example/pystatus.toml", get_user_config_path()]
-    toml_dict = None
-    while paths:
-        new_config = read_config_from_path(paths.pop())
-        if new_config:
-            if not toml_dict:
-                toml_dict = new_config
-            else:
-                toml_dict = merge_configs(new_config, toml_dict)
-    if not toml_dict:
-        logging.error("Could not find any valid config file. Exiting...")
-        exit(1)
-    return toml_dict
+class Config:
+    def __init__(self):
+        paths = ["example/pystatus.toml", get_user_config_path()]
+        toml_dict = None
+        while paths:
+            new_config = read_config_from_path(paths.pop())
+            if new_config:
+                if not toml_dict:
+                    toml_dict = new_config
+                else:
+                    toml_dict = merge_configs(new_config, toml_dict)
+        if not toml_dict:
+            logging.error("Could not find any valid config file. Exiting...")
+            exit(1)
+        self.config = toml_dict
+
+    def get_entry_for_bar(self, bar_name, key):
+        return self.config["bars"][bar_name][key]
+
+    def get_entry_for_module(self, module_name, key):
+        return self.config["modules"][module_name][key]
+
+
+class ConfigError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return f"ConfigError: {self.message}"
 
 
 def merge_configs(source, destination):
@@ -54,29 +64,6 @@ def read_config_from_path(path: str):
         return toml_dict
     else:
         return None
-
-
-def instantiate_modules_for_bar(bar_name: str, config: Dict):
-    bar = config["bars"][bar_name]
-    module_names = bar["modules"]
-
-    module_configs = config["modules"]
-
-    modules = []
-    for module_name in module_names:
-        module_config = module_configs[module_name]
-        match module_config["type"]:
-            case "volume":
-                modules.append(VolumeModule())
-            case "battery":
-                modules.append(BatteryModule())
-            case "mpris":
-                modules.append(MprisModule())
-            case "cpu":
-                modules.append(CpuModule())
-            case "tray":
-                modules.append(TrayModule())
-    return modules
 
 
 def get_user_config_path():

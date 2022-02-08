@@ -1,5 +1,7 @@
 [bars.status]
 modules = ["volume", "battery", "mpris", "cpu", "tray"]
+anchors = ["right", "top"]
+orientation = "horizontal"
 
 [modules.volume]
 type = "volume"

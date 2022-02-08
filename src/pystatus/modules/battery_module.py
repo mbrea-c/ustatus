@@ -5,10 +5,16 @@ import psutil
 
 
 class BatteryModule(ModuleWithModal):
-    def __init__(self, update_period_seconds=3) -> None:
+    def __init__(
+        self, gtk_orientation: Gtk.Orientation, update_period_seconds=3
+    ) -> None:
         module_widget = BatteryWidget()
         modal_widget = BatteryWidget()
-        super().__init__(module_widget, modal_widget)
+        super().__init__(
+            module_widget=module_widget,
+            modal_widget=modal_widget,
+            gtk_orientation=gtk_orientation,
+        )
 
         self._update()
         GLib.timeout_add(update_period_seconds * 1000, lambda: self._update())

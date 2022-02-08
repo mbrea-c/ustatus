@@ -10,7 +10,9 @@ import asyncio
 
 
 class MprisModule(Module):
-    def __init__(self, update_period_seconds=3) -> None:
+    def __init__(
+        self, gtk_orientation: Gtk.Orientation, update_period_seconds=3
+    ) -> None:
 
         self.modal_widget = MprisModalWidget(self._on_select_player_callback)
         modal_menubutton = self.get_popover_menubutton(self.modal_widget)
@@ -19,7 +21,7 @@ class MprisModule(Module):
 
         self.init_dbus_task = asyncio.create_task(self.__init_dbus__())
 
-        super().__init__(self.module_widget)
+        super().__init__(self.module_widget, gtk_orientation=gtk_orientation)
 
     def _update(self) -> bool:
         return True
