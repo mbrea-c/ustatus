@@ -19,7 +19,9 @@ class LineGraph(Gtk.DrawingArea):
         context.set_source_rgba(
             fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha
         )
-        context.set_line_width(0.03)
+
+        maxsize = max([area.get_allocated_width(), area.get_allocated_height()])
+        context.set_line_width(1 / maxsize)
 
         separation: float = 1 / (len(self.values) - 1)
 
