@@ -1,3 +1,4 @@
+from typing import Callable
 from gi.repository import Gtk, GLib
 import pulsectl_asyncio, asyncio
 from pystatus.graphics.volume import Volume
@@ -5,7 +6,9 @@ from pystatus.module import Module
 
 
 class VolumeModule(Gtk.Frame):
-    def __init__(self, gtk_orientation: Gtk.Orientation) -> None:
+    def __init__(
+        self, gtk_orientation: Gtk.Orientation, toggle_modal: Callable
+    ) -> None:
         super().__init__()
 
         container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)

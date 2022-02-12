@@ -57,6 +57,8 @@ class Pystatus(Gtk.Window):
         super().__init__(application=application)
 
         self.config = config
+        self.modal_window = Gtk.Window(application=application)
+        self.modal_widget = None
         self.bar_name = bar_name
         self.box = Gtk.Box()
         self.config_box()
@@ -72,7 +74,9 @@ class Pystatus(Gtk.Window):
         self.connect("destroy", Gtk.main_quit)
 
         asyncio.create_task(
-            init_service(lambda: self.hide(), lambda: self.show(), bar_name)
+            init_service(
+                lambda: self.hide_status(), lambda: self.show_status(), bar_name
+            )
         )
 
     def setup_layer_shell(self):
@@ -89,8 +93,37 @@ class Pystatus(Gtk.Window):
                     GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, 1)
                 case _:
                     raise ConfigError(f"Anchor point {anchor} not defined.")
+        GtkLayerShell.init_for_window(self.modal_window)
+        self.update_modal_anchor()
+        self.connect("size-allocate", lambda window, size: self.update_modal_anchor())
         # window.set_size_request(100, 100)
         # window.resize(100, 100)
+
+    def show_status(self):
+        self.show()
+
+    def hide_status(self):
+        self.hide_modal()
+        self.hide()
+
+    def show_modal(self, widget: Gtk.Widget):
+        if self.modal_widget:
+            self.modal_window.remove(self.modal_widget)
+        self.modal_widget = widget
+        self.modal_window.add(self.modal_widget)
+        self.modal_window.show_all()
+
+    def hide_modal(self):
+        if self.modal_widget:
+            self.modal_window.remove(self.modal_widget)
+            self.modal_widget = None
+        self.modal_window.hide()
+
+    def toggle_modal(self, widget: Gtk.Widget):
+        if self.modal_widget == widget:
+            self.hide_modal()
+        else:
+            self.show_modal(widget)
 
     def config_box(self):
         match self.config.get_entry_for_bar(self.bar_name, "orientation"):
@@ -111,26 +144,86 @@ class Pystatus(Gtk.Window):
             match self.config.get_entry_for_module(module_name, "type"):
                 case "volume":
                     self.modules.append(
-                        VolumeModule(gtk_orientation=self.gtk_orientation)
+                        VolumeModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                        )
                     )
                 case "battery":
                     self.modules.append(
-                        BatteryModule(gtk_orientation=self.gtk_orientation)
+                        BatteryModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                        )
                     )
                 case "mpris":
                     self.modules.append(
-                        MprisModule(gtk_orientation=self.gtk_orientation)
+                        MprisModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                        )
                     )
                 case "cpu":
-                    self.modules.append(CpuModule(gtk_orientation=self.gtk_orientation))
+                    self.modules.append(
+                        CpuModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                        )
+                    )
                 case "tray":
                     self.modules.append(
-                        TrayModule(gtk_orientation=self.gtk_orientation)
+                        TrayModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                        )
                     )
                 case other:
                     raise ConfigError(f"Module type {other} not defined.")
         for module in self.modules:
             self.box.add(module)
+
+    def update_modal_anchor(self):
+        margin_x = 1
+        margin_y = 1
+        match self.gtk_orientation:
+            case Gtk.Orientation.VERTICAL:
+                margin_x = self.get_allocated_width()
+                margin_y = 1
+            case Gtk.Orientation.HORIZONTAL:
+                margin_y = self.get_allocated_height()
+                margin_x = 1
+        for anchor in self.config.get_entry_for_bar(self.bar_name, "anchors"):
+            match anchor:
+                case "right":
+                    GtkLayerShell.set_anchor(
+                        self.modal_window, GtkLayerShell.Edge.RIGHT, True
+                    )
+                    GtkLayerShell.set_margin(
+                        self.modal_window, GtkLayerShell.Edge.RIGHT, margin_x
+                    )
+                case "left":
+                    GtkLayerShell.set_anchor(
+                        self.modal_window, GtkLayerShell.Edge.LEFT, True
+                    )
+                    GtkLayerShell.set_margin(
+                        self.modal_window, GtkLayerShell.Edge.LEFT, margin_x
+                    )
+                case "top":
+                    GtkLayerShell.set_anchor(
+                        self.modal_window, GtkLayerShell.Edge.TOP, True
+                    )
+                    GtkLayerShell.set_margin(
+                        self.modal_window, GtkLayerShell.Edge.TOP, margin_y
+                    )
+                case "bottom":
+                    GtkLayerShell.set_anchor(
+                        self.modal_window, GtkLayerShell.Edge.BOTTOM, True
+                    )
+                    GtkLayerShell.set_margin(
+                        self.modal_window, GtkLayerShell.Edge.BOTTOM, margin_y
+                    )
+                case _:
+                    raise ConfigError(f"Anchor point {anchor} not defined.")
 
 
 def setup_module_css():

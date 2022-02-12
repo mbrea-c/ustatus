@@ -1,3 +1,4 @@
+from typing import Callable
 from gi.repository import Gtk, GLib
 from pystatus.graphics.battery import Battery
 from pystatus.module import ModuleWithModal
@@ -6,7 +7,10 @@ import psutil
 
 class BatteryModule(ModuleWithModal):
     def __init__(
-        self, gtk_orientation: Gtk.Orientation, update_period_seconds=3
+        self,
+        gtk_orientation: Gtk.Orientation,
+        toggle_modal: Callable,
+        update_period_seconds=3,
     ) -> None:
         module_widget = BatteryWidget()
         modal_widget = BatteryWidget()
@@ -14,6 +18,7 @@ class BatteryModule(ModuleWithModal):
             module_widget=module_widget,
             modal_widget=modal_widget,
             gtk_orientation=gtk_orientation,
+            toggle_modal=toggle_modal,
         )
 
         self._update()

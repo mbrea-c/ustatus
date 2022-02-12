@@ -1,3 +1,4 @@
+from typing import Callable
 from gi.repository import Gtk, GLib, DbusmenuGtk3, Gdk
 from pystatus.module import Module
 from dbus_next.service import ServiceInterface, method, dbus_property, signal
@@ -8,9 +9,18 @@ import asyncio
 
 
 class TrayModule(Module):
-    def __init__(self, gtk_orientation, update_period_seconds=3) -> None:
+    def __init__(
+        self,
+        gtk_orientation: Gtk.Orientation,
+        toggle_modal: Callable,
+        update_period_seconds=3,
+    ) -> None:
         self.module_widget = TrayWidget(orientation=gtk_orientation)
-        super().__init__(self.module_widget, gtk_orientation=gtk_orientation)
+        super().__init__(
+            module_widget=self.module_widget,
+            toggle_modal=toggle_modal,
+            gtk_orientation=gtk_orientation,
+        )
 
         self._update()
         GLib.timeout_add(update_period_seconds * 1000, lambda: self._update())
