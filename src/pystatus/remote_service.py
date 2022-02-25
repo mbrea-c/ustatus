@@ -14,13 +14,13 @@ async def init_service(on_hide, on_show, bar_name):
     )
     bus.export("/PystatusRemoteService", interface)
     # now that we are ready to handle requests, we can request name from D-Bus
-    await bus.request_name(f"pystatus.PystatusRemoteService.{bar_name}")
+    asyncio.create_task(bus.request_name(f"pystatus.PystatusRemoteService.{bar_name}"))
+    logging.info("Remote service initialized")
 
 
 class PystatusRemoteService(ServiceInterface):
     def __init__(self, name, on_show, on_hide):
         super().__init__(name)
-        self._string_prop = "kevin"
         self.on_show = on_show
         self.on_hide = on_hide
         self.is_shown = True

@@ -1,4 +1,8 @@
 import asyncio, gbulb, gi, argparse, logging, logging.handlers
+from typing import Optional
+
+from pystatus.utils.swaymsg import get_outputs
+
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("DbusmenuGtk3", "0.4")
@@ -19,12 +23,13 @@ except ValueError:
 
 from gi.repository import Gtk, GtkLayerShell, Gdk
 from pystatus.remote_service import init_service
-from pystatus.config import Config, ConfigError
+from pystatus.config import BarConfig, Config, ConfigError
 from pystatus.modules.battery_module import BatteryModule
 from pystatus.modules.cpu_module import CpuModule
 from pystatus.modules.mpris_module import MprisModule
 from pystatus.modules.tray_module import TrayModule
 from pystatus.modules.volume_module import VolumeModule
+from pystatus.modules.sway_module import SwayModule
 
 
 def main():
@@ -34,43 +39,64 @@ def main():
     )
     parser.add_argument(
         "bar_name",
-        metavar="bar",
+        metavar="<bar>",
         type=str,
         help="name of the bar to spawn",
     )
+    parser.add_argument(
+        "-o",
+        "--output",
+        metavar="<output_name>",
+        type=str,
+        default=None,
+        help="wlroots output name (i.e. LVDS-1)",
+    )
     args = parser.parse_args()
     bar_name = args.bar_name
+    output = args.output
     gbulb.install(gtk=True)  # only necessary if you're using GtkApplication
     application = Gtk.Application()
-    application.connect("activate", lambda app: build_ui(app, bar_name))
+    application.connect(
+        "activate",
+        lambda app: build_ui(application=app, bar_name=bar_name, output=output),
+    )
     loop = asyncio.get_event_loop()
     loop.run_forever(application=application)
 
 
-def build_ui(application, bar_name):
+def build_ui(application, bar_name, output):
     config = Config()
-    pystatus = Pystatus(application, bar_name, config)
+    pystatus = Pystatus(
+        application=application, bar_name=bar_name, config=config, output=output
+    )
 
 
 class Pystatus(Gtk.Window):
-    def __init__(self, application: Gtk.Application, bar_name: str, config: Config):
+    def __init__(
+        self,
+        application: Gtk.Application,
+        bar_name: str,
+        config: Config,
+        output: Optional[str],
+    ):
         super().__init__(application=application)
 
-        self.config = config
+        self.config: Config = config
+        self.bar_config: BarConfig = self.config.get_bar_config(bar_name)
         self.modal_window = Gtk.Window(application=application)
         self.modal_widget = None
         self.bar_name = bar_name
-        self.box = Gtk.Box()
-        self.config_box()
+        self.output = output
+
+        self._init_box()
+        self._init_layer_shell()
         setup_module_css()
+        self._init_modules()
 
-        modules = self.instantiate_modules()
-
-        self.add(self.box)
-
-        self.setup_layer_shell()
-
+        self.center_box.show_all()
+        self.box.show_all()
         self.show_all()
+
         self.connect("destroy", Gtk.main_quit)
 
         asyncio.create_task(
@@ -79,9 +105,32 @@ class Pystatus(Gtk.Window):
             )
         )
 
-    def setup_layer_shell(self):
+        if self.output:
+            asyncio.create_task(self._move_to_monitor())
+
+        logging.info(f"Initialized bar {bar_name}")
+
+    async def _move_to_monitor(self):
+        monitor = await self._get_gdk_monitor(self.output)
+        GtkLayerShell.set_monitor(self, monitor)
+
+    async def _get_gdk_monitor(self, output):
+        outputs = await get_outputs()
+        out = list(filter(lambda m: m["name"] == output, outputs))
+        assert len(out) == 1
+        out = out[0]
+
+        display = self.get_display()
+        for num in range(display.get_n_monitors()):
+            m = display.get_monitor(num)
+            if m.get_model() == out["model"]:
+                return m
+
+        raise Exception(f"Could not find monitor {out}")
+
+    def _init_layer_shell(self):
         GtkLayerShell.init_for_window(self)
-        for anchor in self.config.get_entry_for_bar(self.bar_name, "anchors"):
+        for anchor in self.bar_config.anchors:
             match anchor:
                 case "right":
                     GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, 1)
@@ -96,8 +145,45 @@ class Pystatus(Gtk.Window):
         GtkLayerShell.init_for_window(self.modal_window)
         self.update_modal_anchor()
         self.connect("size-allocate", lambda window, size: self.update_modal_anchor())
-        # window.set_size_request(100, 100)
-        # window.resize(100, 100)
+        self.connect("size-allocate", lambda _, size: self._verify_size(size))
+        if self.bar_config.exclusive:
+            self._update_exclusive_zone()
+            self.connect(
+                "size-allocate", lambda window, size: self._update_exclusive_zone()
+            )
+
+    def _init_modules(self):
+        self.modules_start = self.instantiate_modules(self.bar_config.modules_start)
+        self.modules_center = self.instantiate_modules(self.bar_config.modules_center)
+        self.modules_end = self.instantiate_modules(
+            reversed(self.bar_config.modules_end)
+        )
+
+        for module in self.modules_start:
+            self.box.pack_start(child=module, expand=False, fill=False, padding=0)
+        for module in self.modules_center:
+            self.center_box.pack_start(
+                child=module, expand=False, fill=False, padding=0
+            )
+        for module in self.modules_end:
+            self.box.pack_end(child=module, expand=False, fill=False, padding=0)
+
+    def _verify_size(self, size: Optional[Gdk.Rectangle] = None):
+        if not size:
+            size = self.get_allocation()
+        assert size is not None
+
+        match self.gtk_orientation:
+            case Gtk.Orientation.VERTICAL:
+                width = size.width
+            case Gtk.Orientation.HORIZONTAL:
+                width = size.height
+            case other:
+                raise Exception(f"Orientation {other} not recognized")
+        if width > self.bar_config.width:
+            logging.warning(
+                f"Width set to {self.bar_config.width}, but actual width is {width}"
+            )
 
     def show_status(self):
         self.show()
@@ -125,62 +211,89 @@ class Pystatus(Gtk.Window):
         else:
             self.show_modal(widget)
 
-    def config_box(self):
-        match self.config.get_entry_for_bar(self.bar_name, "orientation"):
+    def _init_box(self):
+        self.box = Gtk.Box()
+        self.center_box = Gtk.Box()
+        self.box.set_center_widget(self.center_box)
+
+        match self.bar_config.orientation:
             case "horizontal":
                 self.gtk_orientation = Gtk.Orientation.HORIZONTAL
                 self.box.set_orientation(self.gtk_orientation)
+                self.center_box.set_orientation(self.gtk_orientation)
             case "vertical":
                 self.gtk_orientation = Gtk.Orientation.VERTICAL
                 self.box.set_orientation(self.gtk_orientation)
+                self.center_box.set_orientation(self.gtk_orientation)
             case other:
                 raise ConfigError(f"Orientation {other} not defined.")
+        self.add(self.box)
 
-    def instantiate_modules(self):
-        module_names = self.config.get_entry_for_bar(self.bar_name, "modules")
-
-        self.modules = []
+    def instantiate_modules(self, module_names):
+        modules = []
         for module_name in module_names:
-            match self.config.get_entry_for_module(module_name, "type"):
+            module_config = self.config.get_module_config(module_name)
+            match module_config.type:
                 case "volume":
-                    self.modules.append(
+                    modules.append(
                         VolumeModule(
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
                         )
                     )
                 case "battery":
-                    self.modules.append(
+                    modules.append(
                         BatteryModule(
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
                         )
                     )
                 case "mpris":
-                    self.modules.append(
+                    modules.append(
                         MprisModule(
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
                         )
                     )
                 case "cpu":
-                    self.modules.append(
+                    modules.append(
                         CpuModule(
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
                         )
                     )
                 case "tray":
-                    self.modules.append(
+                    modules.append(
                         TrayModule(
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
+                        )
+                    )
+                case "sway":
+                    modules.append(
+                        SwayModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                            output=self.output,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
                         )
                     )
                 case other:
                     raise ConfigError(f"Module type {other} not defined.")
-        for module in self.modules:
-            self.box.add(module)
+            if self.bar_config.separators:
+                modules.append(Gtk.Separator.new(orientation=self._not_orientation()))
+        return modules
 
     def update_modal_anchor(self):
         margin_x = 1
@@ -192,7 +305,7 @@ class Pystatus(Gtk.Window):
             case Gtk.Orientation.HORIZONTAL:
                 margin_y = self.get_allocated_height()
                 margin_x = 1
-        for anchor in self.config.get_entry_for_bar(self.bar_name, "anchors"):
+        for anchor in self.bar_config.anchors:
             match anchor:
                 case "right":
                     GtkLayerShell.set_anchor(
@@ -224,6 +337,25 @@ class Pystatus(Gtk.Window):
                     )
                 case _:
                     raise ConfigError(f"Anchor point {anchor} not defined.")
+
+    def _update_exclusive_zone(self):
+        match self.gtk_orientation:
+            case Gtk.Orientation.VERTICAL:
+                margin = self.get_allocated_width()
+            case Gtk.Orientation.HORIZONTAL:
+                margin = self.get_allocated_height()
+            case other:
+                raise Exception(f"Orientation {other} not recognized")
+        GtkLayerShell.set_exclusive_zone(self, margin)
+
+    def _not_orientation(self):
+        match self.gtk_orientation:
+            case Gtk.Orientation.VERTICAL:
+                return Gtk.Orientation.HORIZONTAL
+            case Gtk.Orientation.HORIZONTAL:
+                return Gtk.Orientation.VERTICAL
+            case other:
+                raise Exception(f"Orientation {other} not recognized")
 
 
 def setup_module_css():

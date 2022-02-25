@@ -1,27 +1,27 @@
 from typing import Callable
 from gi.repository import Gtk, Gdk, GLib
+from pystatus.config import ModuleConfig
 from pystatus.graphics.line_graph import LineGraph
 from pystatus.graphics.bar_graph import BarGraph
-from pystatus.module import ModuleWithModal
+from pystatus.module import Module
 import psutil
 from pystatus.cpuinfo import get_core_per_cpu
 from collections import deque
 import itertools
 
 
-class CpuModule(ModuleWithModal):
+class CpuModule(Module):
     def __init__(
-        self,
-        gtk_orientation: Gtk.Orientation,
-        toggle_modal: Callable,
-        uptate_period_seconds=1,
-        history_length=60,
+        self, bar_width: int, uptate_period_seconds=1, history_length=60, **kwargs
     ) -> None:
-        module_widget = CpuModuleWidget()
+        module_widget = CpuModuleWidget(bar_width=bar_width)
         modal_widget = CpuModuleModalWidget(history_length=history_length)
         self.history_length = history_length
         self.cpu_history = History(
             updater=self.update_cpu_history, maxlen=history_length
+        )
+        self.freq_history = History(
+            updater=self.update_freq_history, maxlen=history_length
         )
         self.temp_history = History(
             updater=self.update_temp_history, maxlen=history_length
@@ -31,15 +31,17 @@ class CpuModule(ModuleWithModal):
         )
         super().__init__(
             module_widget=module_widget,
-            modal_widget=modal_widget,
-            gtk_orientation=gtk_orientation,
-            toggle_modal=toggle_modal,
+            bar_width=bar_width,
+            **kwargs,
         )
+        modal_button = self.get_popover_menubutton(modal_widget=modal_widget)
+        self.module_widget.set_popover_menubutton(modal_button)
         GLib.timeout_add(uptate_period_seconds * 1000, lambda: self._update())
         GLib.timeout_add(uptate_period_seconds * 1000, lambda: self._update_modal())
 
     def _update(self):
         self.cpu_history.update()
+        self.freq_history.update()
         self.temp_history.update()
         self.fans_history.update()
         self.module_widget.update(self.cpu_history.peek_one())
@@ -51,11 +53,16 @@ class CpuModule(ModuleWithModal):
             self.temp_history.peek_one(),
         )
         self.modal_widget.push_fans_value(self.fans_history.peek_one(), "thinkpad")
+        self.modal_widget.push_freq_value(self.freq_history.peek_one())
         return True
 
     def update_cpu_history(self):
         cpu_percents = [x / 100 for x in psutil.cpu_percent(interval=None, percpu=True)]
         return cpu_percents
+
+    def update_freq_history(self):
+        freqs = [x.current for x in psutil.cpu_freq(percpu=True)]
+        return freqs
 
     def update_fans_history(self):
         thinkpad = psutil.sensors_fans()["thinkpad"]
@@ -68,28 +75,36 @@ class CpuModule(ModuleWithModal):
         coretemp = psutil.sensors_temperatures()["coretemp"]
         temps = []
         for ct in coretemp:
-            if ct.critical:
-                temps.append(ct.current / ct.critical)
-            else:
-                temps.append(ct.current / 100)
+            temps.append(ct.current)
         return temps
 
 
 class CpuModuleWidget(Gtk.Box):
-    def __init__(self) -> None:
+    def __init__(self, bar_width: int) -> None:
         super().__init__()
         self.set_orientation(Gtk.Orientation.VERTICAL)
+        self.button = None
         self.meter = BarGraph(
             n_values=psutil.cpu_count(),
             color=Gdk.RGBA(red=0.31, green=0.31, blue=0.80, alpha=1),
         )
-        self.meter.set_size_request(25, 25)
-        label = Gtk.Label(label="CPU")
-        self.add(label)
+        self.meter.set_size_request(bar_width, bar_width)
         self.add(self.meter)
 
     def update(self, values):
         self.meter.set_values(values)
+
+    def set_popover_menubutton(self, button: Gtk.Widget):
+        if self.button:
+            self.remove(self.button)
+        self.button = button
+        button_image = Gtk.Image.new_from_icon_name(
+            "go-down-symbolic", Gtk.IconSize.SMALL_TOOLBAR
+        )
+        self.button.set_image(button_image)
+        Module.__remove_button_frame__(self.button)
+        self.button.set_relief(Gtk.ReliefStyle.NONE)
+        self.add(button)
 
 
 class CpuModuleModalWidget(Gtk.Box):
@@ -100,6 +115,7 @@ class CpuModuleModalWidget(Gtk.Box):
         label = Gtk.Label(label="CPU Usage")
         self.add(label)
         self.init_cpu_usage()
+        self.init_cpu_freq()
         self.init_coretemp()
         self.init_fanspeed()
 
@@ -108,7 +124,11 @@ class CpuModuleModalWidget(Gtk.Box):
         coretemp = psutil.sensors_temperatures()["coretemp"]
         self.temps = []
         for ct in coretemp:
-            temp = Temp(label=ct.label, history_length=self.history_length)
+            if ct.critical:
+                crit = ct.critical
+            else:
+                crit = 100
+            temp = Temp(label=ct.label, history_length=self.history_length, crit=crit)
             self.temps.append(temp)
             temp_container.add(temp)
         self.add(Gtk.Frame(child=temp_container))
@@ -125,6 +145,21 @@ class CpuModuleModalWidget(Gtk.Box):
             for i in range(psutil.cpu_count())
         ]
         for i, cpu in enumerate(self.cpus):
+            cores[cpu_info[i]].add_cpu(cpu)
+        self.add(Gtk.Frame(child=core_container))
+
+    def init_cpu_freq(self):
+        core_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        cpu_info = get_core_per_cpu()
+        core_ids = list(set(cpu_info))
+        cores = [Core(id) for id in core_ids]
+        for core in cores:
+            core_container.add(core)
+        self.freqs = [
+            Freq(i, history_length=self.history_length, max_freq=freq.max)
+            for i, freq in enumerate(psutil.cpu_freq(percpu=True))
+        ]
+        for i, cpu in enumerate(self.freqs):
             cores[cpu_info[i]].add_cpu(cpu)
         self.add(Gtk.Frame(child=core_container))
 
@@ -150,6 +185,14 @@ class CpuModuleModalWidget(Gtk.Box):
             cpu.set_values(v)
         for v, temp in zip(temp_values, self.temps):
             temp.set_values(v)
+
+    def set_freq_values(self, freq_values):
+        for v, freq in zip(freq_values, self.freqs):
+            freq.set_values(v)
+
+    def push_freq_value(self, freq_values):
+        for v, freq in zip(freq_values, self.freqs):
+            freq.push_value(v)
 
     def set_fans_values(self, fan_values, fan_key):
         for v, fan in zip(fan_values, self.fans[fan_key]):
@@ -222,27 +265,60 @@ class Cpu(Gtk.Box):
         return f"CPU {cpu_id}"
 
 
+class Freq(Gtk.Box):
+    def __init__(self, cpu_id: int, history_length: int = 20, max_freq=3000) -> None:
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.label = Gtk.Label(label=self.__label__(cpu_id))
+        self.curr_label = Gtk.Label(label="")
+        self.meter = LineGraph(
+            n_values=history_length,
+            color=Gdk.RGBA(red=0.21, green=0.60, blue=0.60, alpha=1),
+        )
+        self.meter.set_size_request(100, 100)
+        self.set_max_freq(max_freq)
+        self.add(self.meter)
+        self.add(self.curr_label)
+        self.add(self.label)
+
+    def set_max_freq(self, max_freq):
+        self.max_freq = max_freq
+        self.meter.set_max(self.max_freq)
+
+    def set_values(self, new_values: list[float]) -> None:
+        self.meter.set_values(new_values)
+        self.curr_label.set_label(f"{new_values[-1]:.1f} MHz")
+
+    def push_value(self, new_value: float) -> None:
+        self.meter.push_value(new_value)
+        self.curr_label.set_label(f"{new_value:.1f} MHz")
+
+    def __label__(self, cpu_id: int) -> str:
+        return f"CPU {cpu_id}"
+
+
 class Temp(Gtk.Box):
-    def __init__(self, label: str, history_length: int = 20) -> None:
+    def __init__(self, label: str, history_length: int = 20, crit: float = 100) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.label = Gtk.Label(label=label)
         self.curr_label = Gtk.Label(label="")
+        self.crit = crit
         self.meter = LineGraph(
             n_values=history_length,
             color=Gdk.RGBA(red=0.80, green=0.31, blue=0.31, alpha=1),
         )
         self.meter.set_size_request(100, 100)
+        self.meter.set_max(crit)
         self.add(self.meter)
         self.add(self.curr_label)
         self.add(self.label)
 
     def set_values(self, new_values: list[float]) -> None:
         self.meter.set_values(new_values)
-        self.curr_label.set_label(f"{new_values[-1] * 100:.1f}°C")
+        self.curr_label.set_label(f"{new_values[-1]:.1f}°C")
 
     def push_value(self, new_value: float) -> None:
         self.meter.push_value(new_value)
-        self.curr_label.set_label(f"{new_value * 100:.1f}°C")
+        self.curr_label.set_label(f"{new_value:.1f}°C")
 
 
 class FanSpeed(Gtk.Box):

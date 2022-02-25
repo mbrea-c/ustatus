@@ -1,40 +1,42 @@
-from typing import Callable
+import logging
+from typing import Callable, Set
+from dbus_next.constants import PropertyAccess
+from dbus_next.message import Message
 from gi.repository import Gtk, GLib, DbusmenuGtk3, Gdk
+from pystatus.config import ModuleConfig
 from pystatus.module import Module
 from dbus_next.service import ServiceInterface, method, dbus_property, signal
 from dbus_next.signature import Variant
 from dbus_next.aio.message_bus import MessageBus
+from multiprocessing import Process
 
 import asyncio
 
 
 class TrayModule(Module):
     def __init__(
-        self,
-        gtk_orientation: Gtk.Orientation,
-        toggle_modal: Callable,
-        update_period_seconds=3,
+        self, gtk_orientation: Gtk.Orientation, update_period_seconds=3, **kwargs
     ) -> None:
         self.module_widget = TrayWidget(orientation=gtk_orientation)
         super().__init__(
-            module_widget=self.module_widget,
-            toggle_modal=toggle_modal,
-            gtk_orientation=gtk_orientation,
+            module_widget=self.module_widget, gtk_orientation=gtk_orientation, **kwargs
         )
 
-        self._update()
-        GLib.timeout_add(update_period_seconds * 1000, lambda: self._update())
+        self.init_task = asyncio.create_task(self._init_async())
 
-        # Not start another watcher yet, as we are still running swaybar
-        # self.watcher_task = asyncio.create_task(self.__init_watcher__())
-        self.host_task = asyncio.create_task(self.__init_host__())
-        self.attach_to_watcher_task = asyncio.create_task(self.__attach_to_watcher__())
+        self.show_all()
+        self.module_widget.show_all()
 
     def _update(self) -> bool:
         self.module_widget.update()
         return True
 
-    async def __attach_to_watcher__(self):
+    async def _init_async(self):
+        await self._init_watcher()
+        await self._init_host()
+        await self._attach_to_watcher()
+
+    async def _attach_to_watcher(self):
         bus = await MessageBus().connect()
         introspection = await bus.introspect(
             "org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher"
@@ -44,10 +46,11 @@ class TrayModule(Module):
         )
         interface = proxy_object.get_interface("org.kde.StatusNotifierWatcher")
         for merged_string in await interface.get_registered_status_notifier_items():
-            await self.__new_item__(merged_string)
+            logging.info(f"{merged_string}")
+            await self._new_item(merged_string)
 
         interface.on_status_notifier_item_registered(
-            lambda merged_string: self.__new_item_callback__(merged_string)
+            lambda merged_string: self._new_item_callback(merged_string)
         )
 
         interface.on_status_notifier_item_unregistered(
@@ -56,10 +59,10 @@ class TrayModule(Module):
 
         await bus.wait_for_disconnect()
 
-    def __new_item_callback__(self, merged_string: str):
-        asyncio.create_task(self.__new_item__(merged_string))
+    def _new_item_callback(self, merged_string: str):
+        asyncio.create_task(self._new_item(merged_string))
 
-    async def __new_item__(self, merged_string: str):
+    async def _new_item(self, merged_string: str):
         bus_name, obj_path = service_path_from_merged(merged_string)
         item = await TrayItem.init(bus_name, obj_path)
         self.module_widget.new_item(item)
@@ -68,19 +71,19 @@ class TrayModule(Module):
         bus_name, obj_path = service_path_from_merged(merged_string)
         self.module_widget.remove_item(bus_name)
 
-    async def __init_watcher__(self):
+    async def _init_watcher(self):
         bus = await MessageBus().connect()
-        interface = StatusNotifierWatcher("org.kde.StatusNotifierWatcher")
+        interface = StatusNotifierWatcher("org.kde.StatusNotifierWatcher", bus)
         bus.export("/StatusNotifierWatcher", interface)
-        await bus.request_name("org.kde.StatusNotifierWatcher")
-        await asyncio.get_event_loop().create_future()
+        asyncio.create_task(bus.request_name("org.kde.StatusNotifierWatcher"))
+        logging.info("Watcher service initialized")
 
-    async def __init_host__(self):
+    async def _init_host(self):
         bus = await MessageBus().connect()
         interface = StatusNotifierHost("org.kde.StatusNotifierHost")
         bus.export("/StatusNotifierHost", interface)
-        await bus.request_name("org.kde.StatusNotifierHost-pystatus")
-        await asyncio.get_event_loop().create_future()
+        asyncio.create_task(bus.request_name("org.kde.StatusNotifierHost-pystatus"))
+        logging.info("Host service initialized")
 
 
 class TrayWidget(Gtk.FlowBox):
@@ -178,33 +181,37 @@ class TrayItem(Gtk.Box):
 
 
 class StatusNotifierWatcher(ServiceInterface):
-    def __init__(self, name):
+    def __init__(self, name, bus: MessageBus):
         super().__init__(name)
-        self._string_prop = "kevin"
+        self.name = name
+        self._items_registered: Set = set()
+        self._hosts_registered: Set = set()
+        bus.add_message_handler(self.register_sni_handler)
+
+    def register_sni_handler(self, msg: Message):
+        if msg.interface == self.name and msg.member == "RegisterStatusNotifierItem":
+            self._items_registered.add(f"{msg.sender}{msg.body[0]}")
+            return Message.new_method_return(msg, "", [])
 
     @method()
-    def Echo(self, what: "s") -> "s":
-        return what
+    def RegisterStatusNotifierItem(self, service: "s"):
+        pass
 
     @method()
-    def GetVariantDict() -> "a{sv}":
-        return {
-            "foo": Variant("s", "bar"),
-            "bat": Variant("x", -55),
-            "a_list": Variant("as", ["hello", "world"]),
-        }
+    def RegisterStatusNotifierHost(self, service: "s"):
+        self._hosts_registered.add(service)
 
-    @dbus_property()
-    def string_prop(self) -> "s":
-        return self._string_prop
+    @dbus_property(access=PropertyAccess.READ)
+    def RegisteredStatusNotifierItems(self) -> "as":
+        return list(self._items_registered)
 
-    @string_prop.setter
-    def string_prop_setter(self, val: "s"):
-        self._string_prop = val
+    @dbus_property(access=PropertyAccess.READ)
+    def IsStatusNotifierHostRegistered(self) -> "b":
+        return len(self._hosts_registered) > 0
 
-    @signal()
-    def signal_simple(self) -> "s":
-        return "hello"
+    @dbus_property(access=PropertyAccess.READ)
+    def ProtocolVersion(self) -> "i":
+        return 0
 
 
 class StatusNotifierHost(ServiceInterface):

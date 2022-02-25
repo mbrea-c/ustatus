@@ -1,24 +1,17 @@
 from typing import Callable
 from gi.repository import Gtk, GLib
 import pulsectl_asyncio, asyncio
+from pystatus.config import ModuleConfig
 from pystatus.graphics.volume import Volume
 from pystatus.module import Module
+from pystatus.utils.swaymsg import get_workspaces
 
 
-class VolumeModule(Gtk.Frame):
-    def __init__(
-        self, gtk_orientation: Gtk.Orientation, toggle_modal: Callable
-    ) -> None:
-        super().__init__()
-
-        container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.sink_container = Gtk.Box(orientation=gtk_orientation, spacing=5)
-        label = Gtk.Label(label="Volume")
-
-        container.add(label)
-        container.add(self.sink_container)
-
-        self.add(container)
+class VolumeModule(Module):
+    def __init__(self, gtk_orientation: Gtk.Orientation, **kwargs) -> None:
+        super().__init__(gtk_orientation=gtk_orientation, **kwargs)
+        module_widget = VolumeModuleWidget(gtk_orientation=gtk_orientation)
+        self.set_module_widget(module_widget)
 
         self.sinks = dict()
         self.pulse = pulsectl_asyncio.PulseAsync("pystatus")
@@ -33,8 +26,12 @@ class VolumeModule(Gtk.Frame):
                 label = self.sinks[name]
                 label.update(volume)
             else:
-                label = SinkVolume(name, volume)
-                self.sink_container.add(label)
+                label = SinkVolume(
+                    name,
+                    volume,
+                    gtk_orientation=Gtk.Orientation.HORIZONTAL,
+                )
+                self.module_widget.add_sink_volume(label)
                 self.sinks[name] = label
         # Removals
         pending_removal = []
@@ -42,7 +39,7 @@ class VolumeModule(Gtk.Frame):
             if name not in name_volume_dict.keys():
                 pending_removal.append((name, label))
         for name, label in pending_removal:
-            self.sink_container.remove(label)
+            self.module_widget.remove_sink_volume(label)
             self.sinks.pop(name)
 
     async def _init_async(self):
@@ -64,14 +61,21 @@ class VolumeModule(Gtk.Frame):
 
 
 class SinkVolume(Gtk.Box):
-    def __init__(self, name: str, volume: float) -> None:
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+    def __init__(
+        self,
+        name: str,
+        volume: float,
+        gtk_orientation: Gtk.Orientation,
+    ) -> None:
+        super().__init__()
+        container = Gtk.Box(orientation=gtk_orientation, spacing=5)
         self.label = Gtk.Label(label=self._label(volume))
         self.meter = Volume(volume)
         self.meter.set_size_request(25, 25)
         self.set_tooltip_text(name)
-        self.add(self.meter)
-        self.add(self.label)
+        container.pack_start(self.meter, expand=False, fill=False, padding=0)
+        container.add(self.label)
+        self.set_center_widget(container)
         self.show_all()
 
     def update(self, volume: float) -> None:
@@ -80,3 +84,14 @@ class SinkVolume(Gtk.Box):
 
     def _label(self, volume: float) -> str:
         return f"{volume * 100:.0f}%"
+
+
+class VolumeModuleWidget(Gtk.Box):
+    def __init__(self, gtk_orientation: Gtk.Orientation):
+        super().__init__(orientation=gtk_orientation, spacing=5)
+
+    def add_sink_volume(self, sink_volume: SinkVolume):
+        self.pack_start(sink_volume, expand=True, fill=True, padding=0)
+
+    def remove_sink_volume(self, sink_volume: SinkVolume):
+        self.remove(sink_volume)

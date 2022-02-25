@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
 from gi.repository import Gtk, GLib
+from pystatus.config import ModuleConfig
 from pystatus.graphics.battery import Battery
 from pystatus.module import ModuleWithModal, Module
 
@@ -12,9 +13,7 @@ import asyncio
 class MprisModule(Module):
     def __init__(
         self,
-        gtk_orientation: Gtk.Orientation,
-        toggle_modal: Callable,
-        update_period_seconds=3,
+        **kwargs,
     ) -> None:
 
         self.modal_widget = MprisModalWidget(self._on_select_player_callback)
@@ -24,11 +23,7 @@ class MprisModule(Module):
 
         self.init_dbus_task = asyncio.create_task(self.__init_dbus__())
 
-        super().__init__(
-            module_widget=self.module_widget,
-            toggle_modal=toggle_modal,
-            gtk_orientation=gtk_orientation,
-        )
+        super().__init__(module_widget=self.module_widget, **kwargs)
 
     def _update(self) -> bool:
         return True
@@ -179,7 +174,6 @@ class MprisWidget(Gtk.Grid):
         # self.set_column_homogeneous(False)
         # self.set_row_homogeneous(False)
 
-        label = Gtk.Label(label="MPRIS")
         self.button_play = Gtk.Button.new()
         Module.__remove_button_frame__(self.button_play)
         self.button_play_image = Gtk.Image.new()
@@ -210,11 +204,10 @@ class MprisWidget(Gtk.Grid):
         Module.__remove_button_frame__(self.menubutton)
         self.menubutton.set_relief(Gtk.ReliefStyle.NONE)
 
-        self.attach(label, 0, 0, 3, 1)
-        self.attach(self.button_prev, 0, 1, 1, 1)
-        self.attach(self.button_play, 1, 1, 1, 1)
-        self.attach(self.button_next, 2, 1, 1, 1)
-        self.attach(self.menubutton, 0, 2, 3, 1)
+        self.attach(self.button_prev, 0, 0, 1, 1)
+        self.attach(self.button_play, 1, 0, 1, 1)
+        self.attach(self.button_next, 2, 0, 1, 1)
+        self.attach(self.menubutton, 0, 1, 3, 1)
 
     def set_playback_status(self, playback_status):
         if playback_status == "Playing":
