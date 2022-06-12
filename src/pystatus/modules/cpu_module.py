@@ -26,9 +26,9 @@ class CpuModule(Module):
         self.temp_history = History(
             updater=self.update_temp_history, maxlen=history_length
         )
-        self.fans_history = History(
-            updater=self.update_fans_history, maxlen=history_length
-        )
+        # self.fans_history = History(
+            # updater=self.update_fans_history, maxlen=history_length
+        # )
         super().__init__(
             module_widget=module_widget,
             bar_width=bar_width,
@@ -43,7 +43,7 @@ class CpuModule(Module):
         self.cpu_history.update()
         self.freq_history.update()
         self.temp_history.update()
-        self.fans_history.update()
+        # self.fans_history.update()
         self.module_widget.update(self.cpu_history.peek_one())
         return True
 
@@ -52,7 +52,7 @@ class CpuModule(Module):
             self.cpu_history.peek_one(),
             self.temp_history.peek_one(),
         )
-        self.modal_widget.push_fans_value(self.fans_history.peek_one(), "thinkpad")
+        # self.modal_widget.push_fans_value(self.fans_history.peek_one(), "thinkpad")
         self.modal_widget.push_freq_value(self.freq_history.peek_one())
         return True
 
@@ -117,7 +117,7 @@ class CpuModuleModalWidget(Gtk.Box):
         self.init_cpu_usage()
         self.init_cpu_freq()
         self.init_coretemp()
-        self.init_fanspeed()
+        # self.init_fanspeed()
 
     def init_coretemp(self):
         temp_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)

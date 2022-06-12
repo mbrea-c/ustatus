@@ -30,6 +30,7 @@ from pystatus.modules.mpris_module import MprisModule
 from pystatus.modules.tray_module import TrayModule
 from pystatus.modules.volume_module import VolumeModule
 from pystatus.modules.sway_module import SwayModule
+from pystatus.modules.power_profiles_module import PowerProfilesModule
 
 
 def main():
@@ -285,6 +286,15 @@ class Pystatus(Gtk.Window):
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
                             output=self.output,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
+                        )
+                    )
+                case "power_profiles":
+                    modules.append(
+                        PowerProfilesModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
                             config=module_config,
                             bar_width=self.bar_config.width,
                         )
