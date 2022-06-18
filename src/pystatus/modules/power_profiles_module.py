@@ -3,7 +3,9 @@ from gi.repository import Gtk
 from pystatus.module import Module
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
- 
+from dbus_next.errors import DBusError
+from pystatus.utils.notifications import notify_error
+
 import asyncio
 
 
@@ -15,7 +17,11 @@ class PowerProfilesModule(Module):
 
         self.active_profile = "unknown"
 
-        self.modal_widget = PowerProfilesModalWidget(set_profile_callback=lambda profile: asyncio.create_task(self._set_active_profile(profile)))
+        self.modal_widget = PowerProfilesModalWidget(
+            set_profile_callback=lambda profile: asyncio.create_task(
+                self._set_active_profile(profile)
+            )
+        )
         modal_menubutton = self.get_popover_menubutton(self.modal_widget)
         self.module_widget = PowerProfilesWidget(modal_menubutton, self.active_profile)
 
@@ -39,7 +45,10 @@ class PowerProfilesModule(Module):
         self.modal_widget.set_profiles(self.profiles, self.active_profile)
 
     async def _set_active_profile(self, profile):
-        await self.dbus_interface.set_active_profile(profile)
+        try:
+            await self.dbus_interface.set_active_profile(profile)
+        except DBusError as e:
+            notify_error(body=f"Error trying to change active profile: {e}")
 
     async def _init_dbus(self):
         bus_name = "net.hadess.PowerProfiles"
@@ -51,18 +60,25 @@ class PowerProfilesModule(Module):
         proxy_object = self.bus.get_proxy_object(bus_name, obj_path, introspection)
         self.dbus_interface = proxy_object.get_interface(interface_name)
 
-        self.properties_interface = proxy_object.get_interface("org.freedesktop.DBus.Properties")
-        self.properties_interface.on_properties_changed(lambda _,__,___: asyncio.create_task(self._sync_profiles()))
+        self.properties_interface = proxy_object.get_interface(
+            "org.freedesktop.DBus.Properties"
+        )
+        self.properties_interface.on_properties_changed(
+            lambda _a, _b, _c: asyncio.create_task(self._sync_profiles())
+        )
 
         await self._sync_profiles()
-
 
 
 class PowerProfilesWidget(Gtk.Grid):
     def __init__(self, modal_menubutton, active_profile: str):
         super().__init__()
 
+        self.set_hexpand(True)
+        self.set_vexpand(True)
+
         self.active_profile_label = Gtk.Label()
+        self.active_profile_label.set_hexpand(True)
         self.set_active_profile(active_profile)
 
         self.menubutton = modal_menubutton
@@ -80,6 +96,7 @@ class PowerProfilesWidget(Gtk.Grid):
         self.active_profile = active_profile
         self.active_profile_label.set_label(active_profile)
 
+
 class PowerProfilesModalWidget(Gtk.Box):
     def __init__(self, set_profile_callback):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
@@ -96,15 +113,19 @@ class PowerProfilesModalWidget(Gtk.Box):
         profile_button = None
         for profile in profiles:
             logging.info(f"Creating button for profile {profile['Profile'].value}")
-            profile_button = self._create_radiobutton(profile_button, profile, active_profile)
+            profile_button = self._create_radiobutton(
+                profile_button, profile, active_profile
+            )
             self.add(profile_button)
         self.show_all()
 
     def _create_radiobutton(self, prev_button, profile, active_profile):
-        button = Gtk.RadioButton.new_with_label_from_widget(prev_button, profile["Profile"].value)
+        button = Gtk.RadioButton.new_with_label_from_widget(
+            prev_button, profile["Profile"].value
+        )
         if profile["Profile"].value == active_profile:
-                button.set_active(True)
+            button.set_active(True)
         else:
-                button.set_active(False)
+            button.set_active(False)
         button.connect("toggled", self._set_active_profile, profile["Profile"].value)
         return button

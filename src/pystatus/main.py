@@ -21,7 +21,7 @@ except ValueError:
         + " ".join(sys.argv)
     )
 
-from gi.repository import Gtk, GtkLayerShell, Gdk
+from gi.repository import Gtk, GtkLayerShell, Gdk, Notify
 from pystatus.remote_service import init_service
 from pystatus.config import BarConfig, Config, ConfigError
 from pystatus.modules.battery_module import BatteryModule
@@ -31,6 +31,8 @@ from pystatus.modules.tray_module import TrayModule
 from pystatus.modules.volume_module import VolumeModule
 from pystatus.modules.sway_module import SwayModule
 from pystatus.modules.power_profiles_module import PowerProfilesModule
+from pystatus.modules.power_module import PowerModule
+from pystatus.utils.notifications import notify_error
 
 
 def main():
@@ -62,7 +64,10 @@ def main():
         lambda app: build_ui(application=app, bar_name=bar_name, output=output),
     )
     loop = asyncio.get_event_loop()
-    loop.run_forever(application=application)
+    try:
+        loop.run_forever(application=application)
+    except Exception as e:
+        notify_error(summary="Uncaught error", body=f"e")
 
 
 def build_ui(application, bar_name, output):
@@ -81,6 +86,7 @@ class Pystatus(Gtk.Window):
         output: Optional[str],
     ):
         super().__init__(application=application)
+        Notify.init(f"Pystatus {bar_name}")
 
         self.config: Config = config
         self.bar_config: BarConfig = self.config.get_bar_config(bar_name)
@@ -293,6 +299,15 @@ class Pystatus(Gtk.Window):
                 case "power_profiles":
                     modules.append(
                         PowerProfilesModule(
+                            gtk_orientation=self.gtk_orientation,
+                            toggle_modal=self.toggle_modal,
+                            config=module_config,
+                            bar_width=self.bar_config.width,
+                        )
+                    )
+                case "power":
+                    modules.append(
+                        PowerModule(
                             gtk_orientation=self.gtk_orientation,
                             toggle_modal=self.toggle_modal,
                             config=module_config,
