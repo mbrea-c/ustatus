@@ -1,0 +1,59 @@
+[bars.status]
+modules_center = [
+  "volume_status",
+  "battery_status",
+  "power_profiles",
+  "mpris",
+  "cpu",
+  "tray",
+  "power",
+]
+anchors = ["right"]
+orientation = "vertical"
+separators = true
+width = 90
+
+[bars.bar]
+modules_start = ["sway"]
+modules_end = ["volume", "battery"]
+anchors = ["left", "top", "right"]
+orientation = "horizontal"
+exclusive = true
+
+[modules.volume]
+type = "volume"
+
+[modules.battery]
+type = "battery"
+
+[modules.power_profiles]
+type = "power_profiles"
+
+[modules.mpris]
+type = "mpris"
+show_label = true
+label = "MPRIS"
+
+[modules.cpu]
+type = "cpu"
+show_label = true
+label = "CPU"
+
+[modules.tray]
+type = "tray"
+
+[modules.power]
+type = "power"
+
+[modules.sway]
+type = "sway"
+
+[modules.battery_status]
+inherit = "battery"
+show_label = true
+label = "Battery"
+
+[modules.volume_status]
+inherit = "volume"
+show_label = true
+label = "Volume"
