@@ -47,16 +47,13 @@ def array(items=string(), description: Optional[str] = None, default=None):
     return obj
 
 
-# # Optional settings
-# self.show_label: bool = config_dict.get("show_label", False)
-# self.label: Optional[str] = config_dict.get("label", None)
-# self.length: int = config_dict.get("length", 25)
-
 bar = {
     "type": "object",
     "properties": {
         "anchors": array(string()),
-        "output": string(description="Force bar to appear in a given output, or leave empty for auto-choose"),
+        "output": string(
+            description="Force bar to appear in a given output, or leave empty for auto-choose"
+        ),
         "orientation": string(),
         "modules_start": array(string(), default=[]),
         "modules_center": array(string(), default=[]),
@@ -73,7 +70,7 @@ module = {
     "properties": {
         "type": string(),
         "show_label": boolean(default=False),
-        "label": string(default=None),
+        "label": string(default="Label"),
         "length": integer(default=25),
     },
     "required": ["type"],

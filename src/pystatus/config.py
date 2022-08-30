@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Dict, List, Optional
+from typing import Dict
 from jsonschema import validate
 import tomli
 import os.path
@@ -11,29 +11,11 @@ from pystatus.schema import schema, bar, get_python_type, module
 
 class Config:
     def __init__(self):
-        self._parse_arguments()
-        paths = ["examples/pystatus.toml", get_user_config_path()]
-        while paths:
-            new_config = read_config_from_path(paths.pop())
-            if new_config:
-                self.config_dict = merge_configs(new_config, self.config_dict)
+        self.config_dict = dict({"bars": dict(), "modules": dict()})
+        self._update_with_arguments()
+        self._update_with_config_files()
+        self._update_with_defaults()
         validate(instance=self.config_dict, schema=schema)
-        self.bar_configs = dict()
-        self.module_configs = dict()
-        for name, bar_dict in self.config_dict["bars"].items():
-            self.bar_configs[name] = BarConfig(
-                name=name,
-                config_dict=self._inherit_close(
-                    curr_dict=bar_dict, toml_dict=self.config_dict["bars"]
-                ),
-            )
-        for name, module_dict in self.config_dict["modules"].items():
-            self.module_configs[name] = ModuleConfig(
-                name=name,
-                config_dict=self._inherit_close(
-                    curr_dict=module_dict, toml_dict=self.config_dict["modules"]
-                ),
-            )
 
     def _inherit_close(self, curr_dict, toml_dict):
         while "inherit" in curr_dict:
@@ -42,7 +24,14 @@ class Config:
             curr_dict = merge_configs(source=curr_dict, destination=inherited)
         return curr_dict
 
-    def _parse_arguments(self):
+    def _update_with_config_files(self):
+        paths = ["examples/pystatus.toml", get_user_config_path()]
+        while paths:
+            new_config = read_config_from_path(paths.pop())
+            if new_config:
+                self.config_dict = merge_configs(new_config, self.config_dict)
+
+    def _update_with_arguments(self):
         parser = argparse.ArgumentParser(
             description="Start a pystatus instance of the bar of given name."
         )
@@ -62,52 +51,46 @@ class Config:
             )
         args = parser.parse_args()
         self.bar_name = args.bar_name
-        self.config_dict = dict(
-            {"bars": dict({self.bar_name: dict()}), "modules": dict()}
-        )
+        self.config_dict["bars"][self.bar_name] = dict()
         for prop_name in bar["properties"]:
             arg = args.__getattribute__(prop_name)
             if arg is not None:
                 self.config_dict["bars"][self.bar_name][prop_name] = arg
 
+    def _update_with_defaults(self):
+        for bar_config in self.config_dict["bars"].values():
+            for prop_name, prop_details in bar["properties"].items():
+                if prop_name not in bar_config:
+                    bar_config[prop_name] = prop_details.get("default", None)
+
+        for module_config in self.config_dict["modules"].values():
+            for prop_name, prop_details in module["properties"].items():
+                if prop_name not in module_config:
+                    module_config[prop_name] = prop_details.get("default", None)
+
     def get_bar_config(self, bar_name):
-        return self.bar_configs[bar_name]
+        return BarConfig(bar_name, self.config_dict)
 
     def get_module_config(self, module_name):
-        return self.module_configs[module_name]
+        return ModuleConfig(module_name, self.config_dict)
 
 
 class ModuleConfig:
-    def __init__(self, name: str, config_dict: Dict):
-        self.name: str = name
+    def __init__(self, module_name: str, config_dict: Dict):
+        self.module_name = module_name
+        self.config_dict = config_dict
 
-        # Required settings
-        self.type: str = config_dict["type"]
-
-        # Optional settings
-        self.show_label: bool = config_dict.get("show_label", False)
-        self.label: Optional[str] = config_dict.get("label", None)
-        self.length: int = config_dict.get("length", 25)
-
-        # Semantic checks
-        assert not self.show_label or self.label
+    def __getattr__(self, name):
+        return self.config_dict["modules"][self.module_name][name]
 
 
 class BarConfig:
-    def __init__(self, name: str, config_dict: Dict):
-        self.name: str = name
+    def __init__(self, bar_name: str, config_dict: Dict):
+        self.bar_name = bar_name
+        self.config_dict = config_dict
 
-        # Required settings
-        self.anchors: List[str] = config_dict["anchors"]
-        self.orientation: str = config_dict["orientation"]
-
-        # Optional settings
-        self.modules_start: List[str] = config_dict.get("modules_start", [])
-        self.modules_center: List[str] = config_dict.get("modules_center", [])
-        self.modules_end: List[str] = config_dict.get("modules_end", [])
-        self.exclusive: bool = config_dict.get("exclusive", False)
-        self.width: int = config_dict.get("width", 25)
-        self.separators: bool = config_dict.get("separators", False)
+    def __getattr__(self, name):
+        return self.config_dict["bars"][self.bar_name][name]
 
 
 class ConfigError(Exception):

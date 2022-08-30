@@ -1,4 +1,4 @@
-import asyncio, gbulb, gi, argparse, logging, logging.handlers
+import asyncio, gbulb, gi, logging, logging.handlers
 from typing import Optional
 
 from pystatus.utils.swaymsg import get_outputs

@@ -56,6 +56,6 @@ The available module configuration options are:
  ---|---|---|---
 `type` | `string` | `None` | None
 `show_label` | `boolean` | `False` | None
-`label` | `string` | `None` | None
+`label` | `string` | `Label` | None
 `length` | `integer` | `25` | None
 
