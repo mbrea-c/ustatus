@@ -189,6 +189,9 @@ class Pystatus(Gtk.Window):
         self.scrolled_window_container.set_min_content_width(self.bar_config.width)
         self.scrolled_window_container.set_max_content_height(self.bar_config.height)
         self.scrolled_window_container.set_min_content_height(self.bar_config.height)
+        self.scrolled_window_container.set_policy(
+            Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.EXTERNAL
+        )
 
         match self.bar_config.orientation:
             case "horizontal":
