@@ -12,8 +12,8 @@ from pystatus.schema import schema, bar, get_python_type, module
 class Config:
     def __init__(self):
         self.config_dict = dict({"bars": dict(), "modules": dict()})
-        self._update_with_arguments()
         self._update_with_config_files()
+        self._update_with_arguments()
         self._update_with_defaults()
         validate(instance=self.config_dict, schema=schema)
 
@@ -51,7 +51,8 @@ class Config:
             )
         args = parser.parse_args()
         self.bar_name = args.bar_name
-        self.config_dict["bars"][self.bar_name] = dict()
+        if self.bar_name not in self.config_dict["bars"]:
+            self.config_dict["bars"][self.bar_name] = dict()
         for prop_name in bar["properties"]:
             arg = args.__getattribute__(prop_name)
             if arg is not None:

@@ -23,7 +23,9 @@ def get_python_type(type) -> Type:
         case "integer":
             return int
         case "array":
-            return List[get_python_type(type["items"])]
+            match type["items"]["type"]:
+                case "string":
+                    return lambda string: string.split(",")
 
 
 def string(description: Optional[str] = None, default=None) -> Dict[str, str]:
@@ -60,6 +62,7 @@ bar = {
         "modules_end": array(string(), default=[]),
         "exclusive": boolean(default=False),
         "width": integer(default=25),
+        "height": integer(default=100),
         "separators": boolean(default=False),
     },
     "required": ["anchors", "orientation"],

@@ -14,12 +14,12 @@ class PowerModule(Module):
         self,
         **kwargs,
     ) -> None:
-
+        super().__init__(**kwargs)
         self.modal_widget = PowerModalWidget()
         modal_menubutton = self.get_popover_menubutton(self.modal_widget)
-        self.module_widget = PowerWidget(modal_menubutton)
+        self.module_widget = PowerWidget(modal_menubutton, expander=lambda widget: self._expand_widthwise(widget))
 
-        super().__init__(module_widget=self.module_widget, **kwargs)
+        self.set_module_widget(self.module_widget)
 
     def _update(self) -> bool:
         return True
@@ -29,11 +29,10 @@ class PowerModule(Module):
 
 
 class PowerWidget(Gtk.Box):
-    def __init__(self, modal_menubutton):
+    def __init__(self, modal_menubutton, expander):
         super().__init__()
 
-        self.set_hexpand(True)
-        self.set_vexpand(True)
+        expander(self)
 
         self.menubutton = modal_menubutton
         menubutton_image = Gtk.Image.new_from_icon_name(
@@ -42,6 +41,7 @@ class PowerWidget(Gtk.Box):
         self.menubutton.set_image(menubutton_image)
         Module.__remove_button_frame__(self.menubutton)
         self.menubutton.set_relief(Gtk.ReliefStyle.NONE)
+        expander(self.menubutton)
 
         self.set_center_widget(self.menubutton)
 

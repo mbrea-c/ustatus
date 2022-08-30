@@ -30,6 +30,15 @@ class Module(Gtk.Box):
         self.module_widget = module_widget
         self.add(self.module_widget)
 
+    def _expand_widthwise(self, widget=None):
+        if widget is None:
+            widget = self
+        match self.gtk_orientation:
+            case Gtk.Orientation.HORIZONTAL:
+                widget.set_vexpand(True)
+            case Gtk.Orientation.VERTICAL:
+                widget.set_hexpand(True)
+
     def get_popover_menubutton(self, modal_widget: Gtk.Widget):
         self.modal_widget = modal_widget
         button = Gtk.Button()

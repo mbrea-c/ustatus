@@ -1,11 +1,9 @@
 import logging
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set
+from typing import Any, Callable, Dict, Iterable, Optional, Set
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
-from gi.repository import Gtk, GLib
-from pystatus.config import ModuleConfig
-from pystatus.graphics.battery import Battery
-from pystatus.module import ModuleWithModal, Module
+from gi.repository import Gtk
+from pystatus.module import Module
 
 import asyncio
 
@@ -15,15 +13,21 @@ class MprisModule(Module):
         self,
         **kwargs,
     ) -> None:
+        super().__init__(**kwargs)
+
+        self._expand_widthwise()
 
         self.modal_widget = MprisModalWidget(self._on_select_player_callback)
         modal_menubutton = self.get_popover_menubutton(self.modal_widget)
-        self.module_widget = MprisWidget(modal_menubutton)
-        self.bus_names: Set[str] = set()
+        self.module_widget = MprisWidget(
+            modal_menubutton, expander=lambda widget: self._expand_widthwise(widget)
+        )
+        self._expand_widthwise(self.module_widget)
 
+        self.bus_names: Set[str] = set()
         self.init_dbus_task = asyncio.create_task(self.__init_dbus__())
 
-        super().__init__(module_widget=self.module_widget, **kwargs)
+        self.set_module_widget(self.module_widget)
 
     def _update(self) -> bool:
         return True
@@ -161,7 +165,7 @@ class MprisModule(Module):
 
         self.dbus_interface.on_name_owner_changed(self._on_name_owner_changed_callback)
 
-        names = await self.dbus_interface.call_list_names()
+        names = await self.dbus_interface.call_boxlist_names()
         for name in names:
             if name.startswith("org.mpris.MediaPlayer2"):
                 self.bus_names.add(name)
@@ -169,7 +173,7 @@ class MprisModule(Module):
 
 
 class MprisWidget(Gtk.Grid):
-    def __init__(self, modal_menubutton):
+    def __init__(self, modal_menubutton, expander):
         super().__init__()
         # self.set_column_homogeneous(False)
         # self.set_row_homogeneous(False)
@@ -203,6 +207,7 @@ class MprisWidget(Gtk.Grid):
         self.menubutton.set_image(menubutton_image)
         Module.__remove_button_frame__(self.menubutton)
         self.menubutton.set_relief(Gtk.ReliefStyle.NONE)
+        expander(self.menubutton)
 
         self.attach(self.button_prev, 0, 0, 1, 1)
         self.attach(self.button_play, 1, 0, 1, 1)

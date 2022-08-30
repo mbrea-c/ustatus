@@ -66,7 +66,6 @@ class Pystatus(Gtk.Window):
         output = config.config_dict["bars"][bar_name].get("output", None)
         Notify.init(f"Pystatus {bar_name}")
 
-
         self.config: Config = config
         self.bar_config: BarConfig = self.config.get_bar_config(bar_name)
         self.modal_window = Gtk.Window(application=application)
@@ -131,7 +130,6 @@ class Pystatus(Gtk.Window):
         GtkLayerShell.init_for_window(self.modal_window)
         self.update_modal_anchor()
         self.connect("size-allocate", lambda window, size: self.update_modal_anchor())
-        self.connect("size-allocate", lambda _, size: self._verify_size(size))
         if self.bar_config.exclusive:
             self._update_exclusive_zone()
             self.connect(
@@ -153,23 +151,6 @@ class Pystatus(Gtk.Window):
             )
         for module in self.modules_end:
             self.box.pack_end(child=module, expand=False, fill=False, padding=0)
-
-    def _verify_size(self, size: Optional[Gdk.Rectangle] = None):
-        if not size:
-            size = self.get_allocation()
-        assert size is not None
-
-        match self.gtk_orientation:
-            case Gtk.Orientation.VERTICAL:
-                width = size.width
-            case Gtk.Orientation.HORIZONTAL:
-                width = size.height
-            case other:
-                raise Exception(f"Orientation {other} not recognized")
-        if width > self.bar_config.width:
-            logging.warning(
-                f"Width set to {self.bar_config.width}, but actual width is {width}"
-            )
 
     def show_status(self):
         self.show()
@@ -198,9 +179,16 @@ class Pystatus(Gtk.Window):
             self.show_modal(widget)
 
     def _init_box(self):
+        self.scrolled_window_container = Gtk.ScrolledWindow.new()
+        self.add(self.scrolled_window_container)
         self.box = Gtk.Box()
+        self.box.set_vexpand(True)
         self.center_box = Gtk.Box()
         self.box.set_center_widget(self.center_box)
+        self.scrolled_window_container.set_max_content_width(self.bar_config.width)
+        self.scrolled_window_container.set_min_content_width(self.bar_config.width)
+        self.scrolled_window_container.set_max_content_height(self.bar_config.height)
+        self.scrolled_window_container.set_min_content_height(self.bar_config.height)
 
         match self.bar_config.orientation:
             case "horizontal":
@@ -213,7 +201,7 @@ class Pystatus(Gtk.Window):
                 self.center_box.set_orientation(self.gtk_orientation)
             case other:
                 raise ConfigError(f"Orientation {other} not defined.")
-        self.add(self.box)
+        self.scrolled_window_container.add(self.box)
 
     def instantiate_modules(self, module_names):
         modules = []

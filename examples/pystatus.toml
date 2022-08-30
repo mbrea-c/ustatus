@@ -1,17 +1,12 @@
 [bars.status]
-modules_center = [
-  "volume_status",
-  "battery_status",
-  "power_profiles",
-  "mpris",
-  "cpu",
-  "tray",
-  "power",
-]
+modules_start = ["battery_status", "volume_status"]
+modules_center = ["power_profiles", "mpris", "cpu"]
+modules_end = ["tray","power"]
 anchors = ["right"]
 orientation = "vertical"
 separators = true
 width = 90
+height = 500
 
 [bars.bar]
 modules_start = ["sway"]
