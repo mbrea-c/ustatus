@@ -49,11 +49,11 @@ type = "power"
 type = "sway"
 
 [modules.battery_status]
-inherit = "battery"
+type = "battery"
 show_label = true
 label = "Battery"
 
 [modules.volume_status]
-inherit = "volume"
+type = "volume"
 show_label = true
 label = "Volume"

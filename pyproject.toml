@@ -6,6 +6,7 @@ authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 
 [tool.poetry.scripts]
 pystatus = "pystatus.main:main"
+pystatus_docgen = "pystatus.docgen:generate_docs"
 
 [tool.poetry.dependencies]
 python = "^3.10"

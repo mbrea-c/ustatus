@@ -1,39 +1,37 @@
+import argparse
 import logging
 from typing import Dict, List, Optional
+from jsonschema import validate
 import tomli
 import os.path
 import os
 import copy
+from pystatus.schema import schema, bar, get_python_type, module
 
 
 class Config:
     def __init__(self):
-        paths = ["example/pystatus.toml", get_user_config_path()]
-        toml_dict = None
+        self._parse_arguments()
+        paths = ["examples/pystatus.toml", get_user_config_path()]
         while paths:
             new_config = read_config_from_path(paths.pop())
             if new_config:
-                if not toml_dict:
-                    toml_dict = new_config
-                else:
-                    toml_dict = merge_configs(new_config, toml_dict)
-        if not toml_dict:
-            logging.error("Could not find any valid config file. Exiting...")
-            exit(1)
+                self.config_dict = merge_configs(new_config, self.config_dict)
+        validate(instance=self.config_dict, schema=schema)
         self.bar_configs = dict()
         self.module_configs = dict()
-        for name, bar_dict in toml_dict["bars"].items():
+        for name, bar_dict in self.config_dict["bars"].items():
             self.bar_configs[name] = BarConfig(
                 name=name,
                 config_dict=self._inherit_close(
-                    curr_dict=bar_dict, toml_dict=toml_dict["bars"]
+                    curr_dict=bar_dict, toml_dict=self.config_dict["bars"]
                 ),
             )
-        for name, module_dict in toml_dict["modules"].items():
+        for name, module_dict in self.config_dict["modules"].items():
             self.module_configs[name] = ModuleConfig(
                 name=name,
                 config_dict=self._inherit_close(
-                    curr_dict=module_dict, toml_dict=toml_dict["modules"]
+                    curr_dict=module_dict, toml_dict=self.config_dict["modules"]
                 ),
             )
 
@@ -43,6 +41,34 @@ class Config:
             curr_dict.pop("inherit")
             curr_dict = merge_configs(source=curr_dict, destination=inherited)
         return curr_dict
+
+    def _parse_arguments(self):
+        parser = argparse.ArgumentParser(
+            description="Start a pystatus instance of the bar of given name."
+        )
+        parser.add_argument(
+            "bar_name",
+            metavar="<bar>",
+            type=str,
+            help="name of the bar to spawn",
+        )
+        for prop_name, prop_details in bar["properties"].items():
+            parser.add_argument(
+                f"--{prop_name}",
+                metavar=f"<{prop_name}>",
+                type=get_python_type(prop_details),
+                default=None,
+                help=f"({prop_details['type']}) {prop_details.get('description', '')}",
+            )
+        args = parser.parse_args()
+        self.bar_name = args.bar_name
+        self.config_dict = dict(
+            {"bars": dict({self.bar_name: dict()}), "modules": dict()}
+        )
+        for prop_name in bar["properties"]:
+            arg = args.__getattribute__(prop_name)
+            if arg is not None:
+                self.config_dict["bars"][self.bar_name][prop_name] = arg
 
     def get_bar_config(self, bar_name):
         return self.bar_configs[bar_name]

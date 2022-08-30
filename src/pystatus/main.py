@@ -37,31 +37,12 @@ from pystatus.utils.notifications import notify_error
 
 def main():
     setup_logging()
-    parser = argparse.ArgumentParser(
-        description="Start a pystatus instance of the bar of given name."
-    )
-    parser.add_argument(
-        "bar_name",
-        metavar="<bar>",
-        type=str,
-        help="name of the bar to spawn",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        metavar="<output_name>",
-        type=str,
-        default=None,
-        help="wlroots output name (i.e. LVDS-1)",
-    )
-    args = parser.parse_args()
-    bar_name = args.bar_name
-    output = args.output
+    config = Config()
     gbulb.install(gtk=True)  # only necessary if you're using GtkApplication
     application = Gtk.Application()
     application.connect(
         "activate",
-        lambda app: build_ui(application=app, bar_name=bar_name, output=output),
+        lambda app: build_ui(application=app, config=config),
     )
     loop = asyncio.get_event_loop()
     try:
@@ -70,23 +51,21 @@ def main():
         notify_error(summary="Uncaught error", body=f"e")
 
 
-def build_ui(application, bar_name, output):
-    config = Config()
-    pystatus = Pystatus(
-        application=application, bar_name=bar_name, config=config, output=output
-    )
+def build_ui(application, config):
+    pystatus = Pystatus(application=application, config=config)
 
 
 class Pystatus(Gtk.Window):
     def __init__(
         self,
         application: Gtk.Application,
-        bar_name: str,
         config: Config,
-        output: Optional[str],
     ):
         super().__init__(application=application)
+        bar_name = config.bar_name
+        output = config.config_dict["bars"][bar_name].get("output", None)
         Notify.init(f"Pystatus {bar_name}")
+
 
         self.config: Config = config
         self.bar_config: BarConfig = self.config.get_bar_config(bar_name)
