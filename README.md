@@ -16,6 +16,7 @@ the wlr-layer-shell protocol.
   - MPRIS module.
   - Battery module.
   - Volume module.
+  - [power-profiles-daemon](https://gitlab.freedesktop.org/hadess/power-profiles-daemon) remote module.
 - Remote interface through dbus, currently allowing:
   - Show/hide/toggle bar or status window.
 
@@ -82,3 +83,22 @@ For a user-wide installation, run
 cd dist
 pip install --upgrade pystatus-<version_number>.tar.gz
 ```
+
+## Configuration
+
+See the [configuration guide](CONFIGURATION.md) for details. An example configuration file can be
+found in [examples/pystatus.toml](examples/pystatus.toml)
+
+## Is this in an usable state?
+
+I think so, I have used (and still use) this in my daily-driver machine for about 6 months.
+However, there are currently some limitations that some might consider deal
+breaking:
+
+- The UI respects the system GTK theme, but it is not possible to do separate
+  custom theming at the moment. I'm thinking of adding some form of this soon though, as GTK
+  allows theming using CSS fairly easily.
+- In my daily driver setup I use a status window anchored to the right side of
+  the screen, so I haven't done a lot of testing with a horizontal status _bar_.
+  It is possible, but there might (will) be bugs and rough edges. I'm willing to
+  work on this if there is interest.
