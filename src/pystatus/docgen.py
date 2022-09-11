@@ -62,12 +62,12 @@ def generate_table(table):
 
 def generate_type_doc(type: Dict) -> str:
     if "enum" in type:
-        return reduce(lambda a, b: a + " or " + f"`\"{b}\"`", type["enum"], "")
+        return reduce(lambda a, b: a + " *or* " + f"`\"{b}\"`", type["enum"], "")
     elif "type" in type:
         return type["type"]
     elif "anyOf" in type:
         return reduce(
-            lambda a, b: a + "|" + generate_type_doc(b),
+            lambda a, b: a + " *or* " + generate_type_doc(b),
             type["anyOf"],
             "",
         )
