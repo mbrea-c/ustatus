@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Dict
+from typing import Dict, Iterable
 from pystatus.schema import bar, cmdline_friendly, module
 
 
@@ -62,14 +62,22 @@ def generate_table(table):
 
 def generate_type_doc(type: Dict) -> str:
     if "enum" in type:
-        return reduce(lambda a, b: a + " *or* " + f"`\"{b}\"`", type["enum"], "")
+        return _intercalate(map(lambda a: f'`"{a}"`', type["enum"])," *or* ")
     elif "type" in type:
         return type["type"]
     elif "anyOf" in type:
-        return reduce(
-            lambda a, b: a + " *or* " + generate_type_doc(b),
-            type["anyOf"],
-            "",
+        return _intercalate(
+            map(lambda a: generate_type_doc(a), type["anyOf"]),
+            " *or* ",
         )
     else:
         return "unknown"
+
+
+def _intercalate(l: Iterable[str], sep: str):
+    out = ""
+    for i, val in enumerate(l):
+        if i != 0:
+            out += sep
+        out += val
+    return out
