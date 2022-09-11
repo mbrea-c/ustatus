@@ -54,15 +54,15 @@ The available module configuration options are:
 
 
 def generate_table(table):
-    bar_table = " Key | Type | Available in command line | Default | Description \n ---|---|---|---\n"
+    bar_table = " Key | Type | Available in command line | Default | Description \n ---|---|---|---|---\n"
     for prop_name, prop_details in table["properties"].items():
-        bar_table += f"`{prop_name}` | `{generate_type_doc(prop_details)}` | `{cmdline_friendly(prop_details)}` | `{prop_details.get('default', None)}` | {prop_details.get('description', None)}\n"
+        bar_table += f"`{prop_name}` | {generate_type_doc(prop_details)} | {'yes' if cmdline_friendly(prop_details) else 'no'} | `{prop_details.get('default', None)}` | {prop_details.get('description', None)}\n"
     return bar_table
 
 
 def generate_type_doc(type: Dict) -> str:
     if "enum" in type:
-        return reduce(lambda a, b: f"{a}" + "|" + f"{b}", type["enum"])
+        return reduce(lambda a, b: a + " or " + f"`\"{b}\"`", type["enum"], "")
     elif "type" in type:
         return type["type"]
     elif "anyOf" in type:
