@@ -3,7 +3,10 @@
 Configurable status window and/or bar for wayland compositors with support for
 the wlr-layer-shell protocol.
 
-![Screenshot](pystatus.png)
+![Screenshot closed](pystatus_closed.png)
+![Screenshot cpu meters](pystatus_cpu.png)
+![Screenshot power-profiles-daemon](pystatus_ppd.png)
+![Screenshot powermenu](pystatus_power.png)
 
 ## Features
 
