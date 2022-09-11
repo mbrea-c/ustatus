@@ -37,8 +37,8 @@ The available bar configuration keys are:
 `modules_center` | `array` | `True` | `[]` | None
 `modules_end` | `array` | `True` | `[]` | None
 `exclusive` | `boolean` | `True` | `False` | None
-`width` | `|integer|auto` | `False` | `auto` | None
-`height` | `|integer|auto` | `False` | `auto` | None
+`width` | `integer or auto` | `False` | `auto` | None
+`height` | `integer or auto` | `False` | `auto` | None
 `separators` | `boolean` | `True` | `False` | None
 
 
