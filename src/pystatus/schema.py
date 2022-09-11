@@ -1,3 +1,4 @@
+from argparse import ArgumentError
 from typing import Dict, List, Optional, Type
 
 
@@ -12,24 +13,59 @@ def primitive(
     return obj
 
 
-def get_python_type(type) -> Type:
-    match type["type"]:
-        case "string":
-            return str
-        case "boolean":
-            return bool
-        case "integer":
-            return int
-        case "integer":
-            return int
-        case "array":
-            match type["items"]["type"]:
-                case "string":
-                    return lambda string: string.split(",")
+def cmdline_friendly(type: Dict) -> bool:
+    if "type" in type:
+        match type["type"]:
+            case "string":
+                return True
+            case "boolean":
+                return True
+            case "integer":
+                return True
+            case "integer":
+                return True
+            case "array":
+                match type["items"]["type"]:
+                    case "string":
+                        return True
+    return False
 
 
-def string(description: Optional[str] = None, default=None) -> Dict[str, str]:
+def get_python_type(type: Dict) -> Type:
+    if "type" in type:
+        match type["type"]:
+            case "string":
+                return str
+            case "boolean":
+                return bool
+            case "integer":
+                return int
+            case "integer":
+                return int
+            case "array":
+                match type["items"]["type"]:
+                    case "string":
+                        return lambda string: string.split(",")
+
+
+def string(description: Optional[str] = None, default=None) -> Dict:
     return primitive("string", description, default)
+
+
+def string_enum(values: List[str], description: Optional[str] = None, default=None):
+    obj = string(description=description, default=default)
+    obj["enum"] = values
+    return obj
+
+
+def any_of(types: List, description: Optional[str] = None, default=None) -> Dict:
+    obj: Dict = dict()
+    obj["anyOf"] = types
+    if description is not None:
+        obj["description"] = description
+    if default is not None:
+        obj["default"] = default
+    return obj
 
 
 def boolean(description: Optional[str] = None, default=None) -> Dict[str, str]:
@@ -49,6 +85,8 @@ def array(items=string(), description: Optional[str] = None, default=None):
     return obj
 
 
+bar_size = any_of([integer(), string_enum(["auto"])], default="auto")
+
 bar = {
     "type": "object",
     "properties": {
@@ -61,8 +99,8 @@ bar = {
         "modules_center": array(string(), default=[]),
         "modules_end": array(string(), default=[]),
         "exclusive": boolean(default=False),
-        "width": integer(default=25),
-        "height": integer(default=100),
+        "width": bar_size,
+        "height": bar_size,
         "separators": boolean(default=False),
     },
     "required": ["anchors", "orientation"],

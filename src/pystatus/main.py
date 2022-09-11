@@ -185,12 +185,22 @@ class Pystatus(Gtk.Window):
         self.box.set_vexpand(True)
         self.center_box = Gtk.Box()
         self.box.set_center_widget(self.center_box)
-        self.scrolled_window_container.set_max_content_width(self.bar_config.width)
-        self.scrolled_window_container.set_min_content_width(self.bar_config.width)
-        self.scrolled_window_container.set_max_content_height(self.bar_config.height)
-        self.scrolled_window_container.set_min_content_height(self.bar_config.height)
+        if self.bar_config.width == "auto":
+            h_scroll_policy = Gtk.PolicyType.NEVER
+        else:
+            h_scroll_policy = Gtk.PolicyType.EXTERNAL
+            self.scrolled_window_container.set_max_content_width(self.bar_config.width)
+            self.scrolled_window_container.set_min_content_width(self.bar_config.width)
+
+        if self.bar_config.height == "auto":
+            v_scroll_policy = Gtk.PolicyType.NEVER
+        else:
+            v_scroll_policy = Gtk.PolicyType.EXTERNAL
+            self.scrolled_window_container.set_max_content_height(self.bar_config.height)
+            self.scrolled_window_container.set_min_content_height(self.bar_config.height)
+
         self.scrolled_window_container.set_policy(
-            Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.EXTERNAL
+            h_scroll_policy, v_scroll_policy
         )
 
         match self.bar_config.orientation:

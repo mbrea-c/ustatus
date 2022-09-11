@@ -6,7 +6,7 @@ import tomli
 import os.path
 import os
 import copy
-from pystatus.schema import schema, bar, get_python_type, module
+from pystatus.schema import cmdline_friendly, schema, bar, get_python_type, module
 
 
 class Config:
@@ -42,21 +42,23 @@ class Config:
             help="name of the bar to spawn",
         )
         for prop_name, prop_details in bar["properties"].items():
-            parser.add_argument(
-                f"--{prop_name}",
-                metavar=f"<{prop_name}>",
-                type=get_python_type(prop_details),
-                default=None,
-                help=f"({prop_details['type']}) {prop_details.get('description', '')}",
-            )
+            if cmdline_friendly(prop_details):
+                parser.add_argument(
+                    f"--{prop_name}",
+                    metavar=f"<{prop_name}>",
+                    type=get_python_type(prop_details),
+                    default=None,
+                    help=f"({prop_details['type']}) {prop_details.get('description', '')}",
+                )
         args = parser.parse_args()
         self.bar_name = args.bar_name
         if self.bar_name not in self.config_dict["bars"]:
             self.config_dict["bars"][self.bar_name] = dict()
-        for prop_name in bar["properties"]:
-            arg = args.__getattribute__(prop_name)
-            if arg is not None:
-                self.config_dict["bars"][self.bar_name][prop_name] = arg
+        for prop_name, prop_details in bar["properties"].items():
+            if cmdline_friendly(prop_details):
+                arg = args.__getattribute__(prop_name)
+                if arg is not None:
+                    self.config_dict["bars"][self.bar_name][prop_name] = arg
 
     def _update_with_defaults(self):
         for bar_config in self.config_dict["bars"].values():

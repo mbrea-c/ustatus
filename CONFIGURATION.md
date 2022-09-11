@@ -28,17 +28,18 @@ for more details.
 
 The available bar configuration keys are:
 
- Key | Type | Default | Description 
+ Key | Type | Available in command line | Default | Description 
  ---|---|---|---
-`anchors` | `array` | `None` | None
-`output` | `string` | `None` | Force bar to appear in a given output, or leave empty for auto-choose
-`orientation` | `string` | `None` | None
-`modules_start` | `array` | `[]` | None
-`modules_center` | `array` | `[]` | None
-`modules_end` | `array` | `[]` | None
-`exclusive` | `boolean` | `False` | None
-`width` | `integer` | `25` | None
-`separators` | `boolean` | `False` | None
+`anchors` | `array` | `True` | `None` | None
+`output` | `string` | `True` | `None` | Force bar to appear in a given output, or leave empty for auto-choose
+`orientation` | `string` | `True` | `None` | None
+`modules_start` | `array` | `True` | `[]` | None
+`modules_center` | `array` | `True` | `[]` | None
+`modules_end` | `array` | `True` | `[]` | None
+`exclusive` | `boolean` | `True` | `False` | None
+`width` | `|integer|auto` | `False` | `auto` | None
+`height` | `|integer|auto` | `False` | `auto` | None
+`separators` | `boolean` | `True` | `False` | None
 
 
 ## Module configuration
@@ -52,10 +53,10 @@ label = "My Battery Module"
 
 The available module configuration options are:
 
- Key | Type | Default | Description 
+ Key | Type | Available in command line | Default | Description 
  ---|---|---|---
-`type` | `string` | `None` | None
-`show_label` | `boolean` | `False` | None
-`label` | `string` | `Label` | None
-`length` | `integer` | `25` | None
+`type` | `string` | `True` | `None` | None
+`show_label` | `boolean` | `True` | `False` | None
+`label` | `string` | `True` | `Label` | None
+`length` | `integer` | `True` | `25` | None
 
