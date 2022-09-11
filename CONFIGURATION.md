@@ -29,7 +29,7 @@ for more details.
 The available bar configuration keys are:
 
  Key | Type | Available in command line | Default | Description 
- ---|---|---|---
+ ---|---|---|---|---
 `anchors` | `array` | `True` | `None` | None
 `output` | `string` | `True` | `None` | Force bar to appear in a given output, or leave empty for auto-choose
 `orientation` | `string` | `True` | `None` | None
@@ -54,7 +54,7 @@ label = "My Battery Module"
 The available module configuration options are:
 
  Key | Type | Available in command line | Default | Description 
- ---|---|---|---
+ ---|---|---|---|---
 `type` | `string` | `True` | `None` | None
 `show_label` | `boolean` | `True` | `False` | None
 `label` | `string` | `True` | `Label` | None
