@@ -179,26 +179,26 @@ class MprisWidget(Gtk.Grid):
         # self.set_row_homogeneous(False)
 
         self.button_play = Gtk.Button.new()
-        Module.__remove_button_frame__(self.button_play)
         self.button_play_image = Gtk.Image.new()
         self.button_play.set_image(self.button_play_image)
         self.button_play.set_relief(Gtk.ReliefStyle.NONE)
         self.button_play.set_sensitive(False)
         self.set_playback_status("Paused")
+        Module.__remove_button_frame__(self.button_play)
 
         self.button_prev = Gtk.Button.new_from_icon_name(
             "media-skip-backward-symbolic", Gtk.IconSize.SMALL_TOOLBAR
         )
-        Module.__remove_button_frame__(self.button_prev)
         self.button_prev.set_relief(Gtk.ReliefStyle.NONE)
         self.button_prev.set_sensitive(False)
+        Module.__remove_button_frame__(self.button_prev)
 
         self.button_next = Gtk.Button.new_from_icon_name(
             "media-skip-forward-symbolic", Gtk.IconSize.SMALL_TOOLBAR
         )
-        Module.__remove_button_frame__(self.button_next)
         self.button_next.set_relief(Gtk.ReliefStyle.NONE)
         self.button_next.set_sensitive(False)
+        Module.__remove_button_frame__(self.button_next)
 
         self.menubutton = modal_menubutton
         menubutton_image = Gtk.Image.new_from_icon_name(
@@ -288,4 +288,5 @@ class MprisModalWidget(Gtk.Box):
     def set_items(self, items: Iterable):
         self.combo.remove_all()
         for item in items:
+            self.combo.set_active_id(item)
             self.combo.append_text(item)

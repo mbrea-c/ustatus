@@ -27,11 +27,18 @@ class Volume(Gtk.DrawingArea):
         lw = 0.1
         margin = lw / 2
 
-        outer_triangle = [(margin, 1-margin), (1-margin, margin), (1-margin, 1-margin)]
+        outer_triangle = [
+            (margin, 1 - margin),
+            (1 - margin, margin),
+            (1 - margin, 1 - margin),
+        ]
 
         inner_triangle = [(0, 1), (volume, 1 - volume), (volume, 1)]
 
         context.set_line_width(0.1)
+        context.set_source_rgba(
+            fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha
+        )
         draw_polygon(context, outer_triangle)
         context.stroke()
         draw_polygon(context, inner_triangle)
@@ -39,10 +46,8 @@ class Volume(Gtk.DrawingArea):
 
         if self.volume > 1:
             v = self.volume % 1
-            extra_triangle =  [(0, 1), (v, 1 - v), (v, 1)]
-                
-            context.set_source_rgba(
-                0.8, 0, 0, 1
-            )
+            extra_triangle = [(0, 1), (v, 1 - v), (v, 1)]
+
+            context.set_source_rgba(0.8, 0, 0, 1)
             draw_polygon(context, extra_triangle)
             context.fill()

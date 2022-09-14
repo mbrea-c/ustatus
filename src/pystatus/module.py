@@ -11,6 +11,7 @@ class Module(Gtk.Box):
         toggle_modal: Callable,
         config: ModuleConfig,
         bar_width: int,
+        output,
         module_widget: Optional[Gtk.Widget] = None,
     ) -> None:
         super().__init__(orientation=gtk_orientation)
@@ -18,16 +19,19 @@ class Module(Gtk.Box):
         self.toggle_modal = toggle_modal
         self.bar_width = bar_width
         self.config = config
+        self.output = output
         if self.config.show_label:
             self.add(Gtk.Label(label=self.config.label))
         if module_widget:
             self.set_module_widget(module_widget)
+        self._setup_css()
 
     def _update(self):
         raise NotImplementedError()
 
     def set_module_widget(self, module_widget):
         self.module_widget = module_widget
+        self.module_widget.get_style_context().add_class("module-widget")
         self.add(self.module_widget)
 
     def _expand_widthwise(self, widget=None):
@@ -46,6 +50,11 @@ class Module(Gtk.Box):
         modal_widget.show_all()
 
         return button
+
+    def _setup_css(self):
+        style_context = self.get_style_context()
+        style_context.add_class("module")
+        style_context.add_class(self.config.type)
 
     @staticmethod
     def __remove_button_frame__(button):

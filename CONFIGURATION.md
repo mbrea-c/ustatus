@@ -40,6 +40,7 @@ The available bar configuration keys are:
 `width` | integer *or* `"auto"` | no | `auto` | None
 `height` | integer *or* `"auto"` | no | `auto` | None
 `separators` | boolean | yes | `False` | None
+`theme_override` | string | yes | `None` | None
 
 
 ## Module configuration

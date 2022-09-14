@@ -1,4 +1,4 @@
-import asyncio, gbulb, gi, logging, logging.handlers
+import asyncio, gbulb, gi, logging, logging.handlers, os
 from typing import Optional
 
 from pystatus.utils.swaymsg import get_outputs
@@ -23,7 +23,7 @@ except ValueError:
 
 from gi.repository import Gtk, GtkLayerShell, Gdk, Notify
 from pystatus.remote_service import init_service
-from pystatus.config import BarConfig, Config, ConfigError
+from pystatus.config import BarConfig, Config, ConfigError, ModuleConfig
 from pystatus.modules.battery_module import BatteryModule
 from pystatus.modules.cpu_module import CpuModule
 from pystatus.modules.mpris_module import MprisModule
@@ -73,9 +73,12 @@ class Pystatus(Gtk.Window):
         self.bar_name = bar_name
         self.output = output
 
+        self._setup_gtk_theme()
+        self._setup_css_classes()
+
         self._init_box()
         self._init_layer_shell()
-        setup_module_css()
+        setup_css()
         self._init_modules()
 
         self.center_box.show_all()
@@ -94,6 +97,25 @@ class Pystatus(Gtk.Window):
             asyncio.create_task(self._move_to_monitor())
 
         logging.info(f"Initialized bar {bar_name}")
+
+    def _setup_gtk_theme(self):
+        if self.bar_config.theme_override is not None:
+            logging.info(
+                f"Overriding default theme with {self.bar_config.theme_override}"
+            )
+            Gtk.Settings.get_default().set_property(
+                "gtk_theme_name", self.bar_config.theme_override
+            )
+
+    def _setup_css_classes(self):
+        style_context = self.get_style_context()
+        style_context.add_class(self.bar_name)
+        style_context.add_class("pystatus")
+
+        modal_style_context = self.modal_window.get_style_context()
+        modal_style_context.add_class(self.bar_name)
+        modal_style_context.add_class("pystatus")
+        modal_style_context.add_class("modal")
 
     async def _move_to_monitor(self):
         monitor = await self._get_gdk_monitor(self.output)
@@ -163,6 +185,7 @@ class Pystatus(Gtk.Window):
         if self.modal_widget:
             self.modal_window.remove(self.modal_widget)
         self.modal_widget = widget
+        self.modal_widget.get_style_context().add_class("modal-widget")
         self.modal_window.add(self.modal_widget)
         self.modal_window.show_all()
 
@@ -196,12 +219,14 @@ class Pystatus(Gtk.Window):
             v_scroll_policy = Gtk.PolicyType.NEVER
         else:
             v_scroll_policy = Gtk.PolicyType.EXTERNAL
-            self.scrolled_window_container.set_max_content_height(self.bar_config.height)
-            self.scrolled_window_container.set_min_content_height(self.bar_config.height)
+            self.scrolled_window_container.set_max_content_height(
+                self.bar_config.height
+            )
+            self.scrolled_window_container.set_min_content_height(
+                self.bar_config.height
+            )
 
-        self.scrolled_window_container.set_policy(
-            h_scroll_policy, v_scroll_policy
-        )
+        self.scrolled_window_container.set_policy(h_scroll_policy, v_scroll_policy)
 
         match self.bar_config.orientation:
             case "horizontal":
@@ -220,82 +245,16 @@ class Pystatus(Gtk.Window):
         modules = []
         for module_name in module_names:
             module_config = self.config.get_module_config(module_name)
-            match module_config.type:
-                case "volume":
-                    modules.append(
-                        VolumeModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "battery":
-                    modules.append(
-                        BatteryModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "mpris":
-                    modules.append(
-                        MprisModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "cpu":
-                    modules.append(
-                        CpuModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "tray":
-                    modules.append(
-                        TrayModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "sway":
-                    modules.append(
-                        SwayModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            output=self.output,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "power_profiles":
-                    modules.append(
-                        PowerProfilesModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case "power":
-                    modules.append(
-                        PowerModule(
-                            gtk_orientation=self.gtk_orientation,
-                            toggle_modal=self.toggle_modal,
-                            config=module_config,
-                            bar_width=self.bar_config.width,
-                        )
-                    )
-                case other:
-                    raise ConfigError(f"Module type {other} not defined.")
+            modules.append(
+                create_builtin_module(
+                    module_config=module_config,
+                    bar_config=self.bar_config,
+                    gtk_orientation=self.gtk_orientation,
+                    toggle_modal=self.toggle_modal,
+                    output=self.output,
+                    bar_width=self.bar_config.width,
+                )
+            )
             if self.bar_config.separators:
                 modules.append(Gtk.Separator.new(orientation=self._not_orientation()))
         return modules
@@ -363,14 +322,51 @@ class Pystatus(Gtk.Window):
                 raise Exception(f"Orientation {other} not recognized")
 
 
-def setup_module_css():
+def create_builtin_module(module_config: ModuleConfig, bar_config: BarConfig, **kwargs):
+    builtins = {
+        "volume": VolumeModule,
+        "battery": BatteryModule,
+        "mpris": MprisModule,
+        "cpu": CpuModule,
+        "tray": TrayModule,
+        "sway": SwayModule,
+        "power_profiles": PowerProfilesModule,
+        "power": PowerModule,
+    }
+    if module_config.type in builtins:
+        return builtins[module_config.type](config=module_config, **kwargs)
+    else:
+        raise ConfigError(f"Module type {module_config.type} not defined.")
+
+
+def setup_css():
+    setup_config_css()
     screen = Gdk.Screen.get_default()
     provider = Gtk.CssProvider()
     style_context = Gtk.StyleContext()
     style_context.add_provider_for_screen(
         screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
-    provider.load_from_data(".module-button {padding: 0;}".encode())
+    css = """
+.module-button {padding: 0; border: none;}
+"""
+    provider.load_from_data(css.encode())
+
+
+def setup_config_css():
+    if "XDG_CONFIG_HOME" in os.environ:
+        config_path = os.path.expandvars("$XDG_CONFIG_HOME/pystatus/pystatus.css")
+    else:
+        config_path = os.path.expandvars("$HOME/.config/pystatus/pystatus.css")
+    if os.path.exists(config_path):
+        logging.info(f"Loading CSS from {config_path}")
+        screen = Gdk.Screen.get_default()
+        provider = Gtk.CssProvider()
+        style_context = Gtk.StyleContext()
+        style_context.add_provider_for_screen(
+            screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+        )
+        provider.load_from_path(config_path)
 
 
 def setup_logging():

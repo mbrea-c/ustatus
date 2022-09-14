@@ -102,6 +102,7 @@ bar = {
         "width": bar_size,
         "height": bar_size,
         "separators": boolean(default=False),
+        "theme_override": string(),
     },
     "required": ["anchors", "orientation"],
 }

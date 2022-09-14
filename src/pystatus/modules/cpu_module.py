@@ -27,7 +27,7 @@ class CpuModule(Module):
             updater=self.update_temp_history, maxlen=history_length
         )
         # self.fans_history = History(
-            # updater=self.update_fans_history, maxlen=history_length
+        # updater=self.update_fans_history, maxlen=history_length
         # )
         super().__init__(
             module_widget=module_widget,
@@ -131,7 +131,7 @@ class CpuModuleModalWidget(Gtk.Box):
             temp = Temp(label=ct.label, history_length=self.history_length, crit=crit)
             self.temps.append(temp)
             temp_container.add(temp)
-        self.add(Gtk.Frame(child=temp_container))
+        self.add(temp_container)
 
     def init_cpu_usage(self):
         core_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -146,7 +146,7 @@ class CpuModuleModalWidget(Gtk.Box):
         ]
         for i, cpu in enumerate(self.cpus):
             cores[cpu_info[i]].add_cpu(cpu)
-        self.add(Gtk.Frame(child=core_container))
+        self.add(core_container)
 
     def init_cpu_freq(self):
         core_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -161,7 +161,7 @@ class CpuModuleModalWidget(Gtk.Box):
         ]
         for i, cpu in enumerate(self.freqs):
             cores[cpu_info[i]].add_cpu(cpu)
-        self.add(Gtk.Frame(child=core_container))
+        self.add(core_container)
 
     def init_fanspeed(self):
         self.fans = dict()
@@ -178,7 +178,7 @@ class CpuModuleModalWidget(Gtk.Box):
                 self.fans[key].append(fan_gtk)
                 fanspeed_container.add(fan_gtk)
 
-        self.add(Gtk.Frame(child=fanspeed_container))
+        self.add(child=fanspeed_container)
 
     def set_values(self, cpu_values, temp_values):
         for v, cpu in zip(cpu_values, self.cpus):

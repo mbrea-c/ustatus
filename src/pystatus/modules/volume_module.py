@@ -2,6 +2,7 @@ from typing import Callable
 from gi.repository import Gtk, GLib
 import pulsectl_asyncio, asyncio
 from pystatus.config import ModuleConfig
+from pystatus.graphics.meter import Meter
 from pystatus.graphics.volume import Volume
 from pystatus.module import Module
 from pystatus.utils.swaymsg import get_workspaces
@@ -70,8 +71,10 @@ class SinkVolume(Gtk.Box):
         super().__init__()
         container = Gtk.Box(orientation=gtk_orientation, spacing=5)
         self.label = Gtk.Label(label=self._label(volume))
-        self.meter = Volume(volume)
-        self.meter.set_size_request(25, 25)
+        self.meter = Meter(volume)
+        self.meter.set_size_request(40, 1)
+        self.meter.set_hexpand(True)
+        self.meter.set_vexpand(False)
         self.set_tooltip_text(name)
         container.pack_start(self.meter, expand=False, fill=False, padding=0)
         container.add(self.label)
