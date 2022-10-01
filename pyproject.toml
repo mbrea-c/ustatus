@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "pystatus"
+name = "ustatus"
 version = "0.1.6"
-description = "Status window for wayland shells."
+description = "GTK-based status window for wayland shells."
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 
 [tool.poetry.scripts]
-pystatus = "pystatus.main:main"
-pystatus_docgen = "pystatus.docgen:generate_docs"
+ustatus = "ustatus.main:main"
+ustatus_docgen = "ustatus.docgen:generate_docs"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -17,6 +17,7 @@ pulsectl-asyncio = "^0.2.0"
 tomli = "^1.2.2"
 dbus-next = "^0.2.3"
 jsonschema = "^4.4.0"
+python-reactive-ui = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 

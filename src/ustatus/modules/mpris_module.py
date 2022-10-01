@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Set
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
 from gi.repository import Gtk
-from pystatus.module import Module
+from ustatus.module import Module
 
 import asyncio
 

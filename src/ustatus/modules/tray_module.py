@@ -3,8 +3,8 @@ from typing import Callable, Set
 from dbus_next.constants import PropertyAccess
 from dbus_next.message import Message
 from gi.repository import Gtk, GLib, DbusmenuGtk3, Gdk
-from pystatus.config import ModuleConfig
-from pystatus.module import Module
+from ustatus.config import ModuleConfig
+from ustatus.module import Module
 from dbus_next.service import ServiceInterface, method, dbus_property, signal
 from dbus_next.signature import Variant
 from dbus_next.aio.message_bus import MessageBus
@@ -82,7 +82,7 @@ class TrayModule(Module):
         bus = await MessageBus().connect()
         interface = StatusNotifierHost("org.kde.StatusNotifierHost")
         bus.export("/StatusNotifierHost", interface)
-        asyncio.create_task(bus.request_name("org.kde.StatusNotifierHost-pystatus"))
+        asyncio.create_task(bus.request_name("org.kde.StatusNotifierHost-ustatus"))
         logging.info("Host service initialized")
 
 

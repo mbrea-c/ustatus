@@ -1,11 +1,11 @@
 from typing import Callable
 from gi.repository import Gtk, Gdk, GLib
-from pystatus.config import ModuleConfig
-from pystatus.graphics.line_graph import LineGraph
-from pystatus.graphics.bar_graph import BarGraph
-from pystatus.module import Module
+from ustatus.config import ModuleConfig
+from ustatus.graphics.line_graph import LineGraph
+from ustatus.graphics.bar_graph import BarGraph
+from ustatus.module import Module
 import psutil
-from pystatus.cpuinfo import get_core_per_cpu
+from ustatus.cpuinfo import get_core_per_cpu
 from collections import deque
 import itertools
 

@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 from gi.repository import Gtk, GLib
 
-from pystatus.config import ModuleConfig
+from ustatus.config import ModuleConfig
 
 
 class Module(Gtk.Box):

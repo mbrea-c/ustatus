@@ -1,11 +1,11 @@
 from typing import Callable
 from gi.repository import Gtk, GLib
 import pulsectl_asyncio, asyncio
-from pystatus.config import ModuleConfig
-from pystatus.graphics.meter import Meter
-from pystatus.graphics.volume import Volume
-from pystatus.module import Module
-from pystatus.utils.swaymsg import get_workspaces
+from ustatus.config import ModuleConfig
+from ustatus.graphics.meter import Meter
+from ustatus.graphics.volume import Volume
+from ustatus.module import Module
+from ustatus.utils.swaymsg import get_workspaces
 
 
 class VolumeModule(Module):
@@ -15,7 +15,7 @@ class VolumeModule(Module):
         self.set_module_widget(module_widget)
 
         self.sinks = dict()
-        self.pulse = pulsectl_asyncio.PulseAsync("pystatus")
+        self.pulse = pulsectl_asyncio.PulseAsync("ustatus")
 
         self.updater_task = asyncio.create_task(self._init_async())
         self.update_lock = False

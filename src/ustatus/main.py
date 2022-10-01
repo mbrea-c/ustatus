@@ -1,7 +1,6 @@
 import asyncio, gbulb, gi, logging, logging.handlers, os
-from typing import Optional
-
-from pystatus.utils.swaymsg import get_outputs
+from ustatus.utils.swaymsg import get_outputs
+import inspect
 
 
 gi.require_version("Gtk", "3.0")
@@ -22,17 +21,17 @@ except ValueError:
     )
 
 from gi.repository import Gtk, GtkLayerShell, Gdk, Notify
-from pystatus.remote_service import init_service
-from pystatus.config import BarConfig, Config, ConfigError, ModuleConfig
-from pystatus.modules.battery_module import BatteryModule
-from pystatus.modules.cpu_module import CpuModule
-from pystatus.modules.mpris_module import MprisModule
-from pystatus.modules.tray_module import TrayModule
-from pystatus.modules.volume_module import VolumeModule
-from pystatus.modules.sway_module import SwayModule
-from pystatus.modules.power_profiles_module import PowerProfilesModule
-from pystatus.modules.power_module import PowerModule
-from pystatus.utils.notifications import notify_error
+from ustatus.remote_service import init_service
+from ustatus.config import BarConfig, Config, ConfigError, ModuleConfig
+from ustatus.modules.battery_module import BatteryModule
+from ustatus.modules.cpu_module import CpuModule
+from ustatus.modules.mpris_module import MprisModule
+from ustatus.modules.tray_module import TrayModule
+from ustatus.modules.volume_module import VolumeModule
+from ustatus.modules.sway_module import SwayModule
+from ustatus.modules.power_profiles_module import PowerProfilesModule
+from ustatus.modules.power_module import PowerModule
+from ustatus.utils.notifications import notify_error
 
 
 def main():
@@ -52,10 +51,10 @@ def main():
 
 
 def build_ui(application, config):
-    pystatus = Pystatus(application=application, config=config)
+    ustatus = Ustatus(application=application, config=config)
 
 
-class Pystatus(Gtk.Window):
+class Ustatus(Gtk.Window):
     def __init__(
         self,
         application: Gtk.Application,
@@ -64,7 +63,7 @@ class Pystatus(Gtk.Window):
         super().__init__(application=application)
         bar_name = config.bar_name
         output = config.config_dict["bars"][bar_name].get("output", None)
-        Notify.init(f"Pystatus {bar_name}")
+        Notify.init(f"ustatus {bar_name}")
 
         self.config: Config = config
         self.bar_config: BarConfig = self.config.get_bar_config(bar_name)
@@ -110,11 +109,11 @@ class Pystatus(Gtk.Window):
     def _setup_css_classes(self):
         style_context = self.get_style_context()
         style_context.add_class(self.bar_name)
-        style_context.add_class("pystatus")
+        style_context.add_class("ustatus")
 
         modal_style_context = self.modal_window.get_style_context()
         modal_style_context.add_class(self.bar_name)
-        modal_style_context.add_class("pystatus")
+        modal_style_context.add_class("ustatus")
         modal_style_context.add_class("modal")
 
     async def _move_to_monitor(self):
@@ -355,9 +354,9 @@ def setup_css():
 
 def setup_config_css():
     if "XDG_CONFIG_HOME" in os.environ:
-        config_path = os.path.expandvars("$XDG_CONFIG_HOME/pystatus/pystatus.css")
+        config_path = os.path.expandvars("$XDG_CONFIG_HOME/ustatus/ustatus.css")
     else:
-        config_path = os.path.expandvars("$HOME/.config/pystatus/pystatus.css")
+        config_path = os.path.expandvars("$HOME/.config/ustatus/ustatus.css")
     if os.path.exists(config_path):
         logging.info(f"Loading CSS from {config_path}")
         screen = Gdk.Screen.get_default()

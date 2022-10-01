@@ -1,11 +1,11 @@
 import asyncio
 import logging
-from pystatus.config import ModuleConfig
-from pystatus.module import Module
+from ustatus.config import ModuleConfig
+from ustatus.module import Module
 from typing import Callable, Dict, Iterable, Optional
 from gi.repository import Gtk
 
-from pystatus.utils.swaymsg import get_workspaces, subscribe, sway_command
+from ustatus.utils.swaymsg import get_workspaces, subscribe, sway_command
 
 
 class SwayModule(Module):

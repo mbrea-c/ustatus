@@ -1,6 +1,6 @@
 from gi.repository import Gtk
-from pystatus.module import Module
-from pystatus.utils.power_utils import (
+from ustatus.module import Module
+from ustatus.utils.power_utils import (
     shutdown,
     restart,
     suspend_disk,
@@ -17,7 +17,9 @@ class PowerModule(Module):
         super().__init__(**kwargs)
         self.modal_widget = PowerModalWidget()
         modal_menubutton = self.get_popover_menubutton(self.modal_widget)
-        self.module_widget = PowerWidget(modal_menubutton, expander=lambda widget: self._expand_widthwise(widget))
+        self.module_widget = PowerWidget(
+            modal_menubutton, expander=lambda widget: self._expand_widthwise(widget)
+        )
 
         self.set_module_widget(self.module_widget)
 

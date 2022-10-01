@@ -1,5 +1,5 @@
-import pystatus
-from pystatus.module import Module
+import ustatus
+from ustatus.module import Module
 from dbus_next.service import ServiceInterface, method, dbus_property, signal
 from dbus_next.signature import Variant
 from dbus_next.aio.message_bus import MessageBus
@@ -9,16 +9,14 @@ import logging
 
 async def init_service(on_hide, on_show, bar_name):
     bus = await MessageBus().connect()
-    interface = PystatusRemoteService(
-        "pystatus.PystatusRemoteService", on_show, on_hide
-    )
-    bus.export("/PystatusRemoteService", interface)
+    interface = UstatusRemoteService("ustatus.UstatusRemoteService", on_show, on_hide)
+    bus.export("/UstatusRemoteService", interface)
     # now that we are ready to handle requests, we can request name from D-Bus
-    asyncio.create_task(bus.request_name(f"pystatus.PystatusRemoteService.{bar_name}"))
+    asyncio.create_task(bus.request_name(f"ustatus.UstatusRemoteService.{bar_name}"))
     logging.info("Remote service initialized")
 
 
-class PystatusRemoteService(ServiceInterface):
+class UstatusRemoteService(ServiceInterface):
     def __init__(self, name, on_show, on_hide):
         super().__init__(name)
         self.on_show = on_show

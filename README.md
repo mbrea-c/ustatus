@@ -1,4 +1,7 @@
-# pystatus
+# ustatus
+
+_NOTE: Previously named pystatus, renamed due to a PyPI project naming conflict
+preventing me from publishing the project._
 
 Configurable status window and/or bar for wayland compositors with support for
 the wlr-layer-shell protocol.
@@ -29,13 +32,13 @@ The project is built using [Poetry](https://python-poetry.org/).
 To run, clone the project
 
 ```
-git clone https://github.com/mbrea-c/pystatus.git
+git clone https://github.com/mbrea-c/ustatus.git
 ```
 
 move to the cloned directory
 
 ```
-cd pystatus
+cd ustatus
 ```
 
 install dependencies in a local venv with
@@ -44,10 +47,10 @@ install dependencies in a local venv with
 poetry install
 ```
 
-and run pystatus with
+and run ustatus with
 
 ```
-poetry run pystatus <bar name>
+poetry run ustatus <bar name>
 ```
 
 ## User-wide installation from source
@@ -58,13 +61,13 @@ To build
 locally, clone the project
 
 ```
-git clone https://github.com/mbrea-c/pystatus.git
+git clone https://github.com/mbrea-c/ustatus.git
 ```
 
 move to the cloned directory
 
 ```
-cd pystatus
+cd ustatus
 ```
 
 and build
@@ -76,21 +79,21 @@ poetry build
 This will create two files in the `dist` directory,
 
 ```
-dist/pystatus-<version_number>.tar.gz
-dist/pystatus-<version_number>-py3-none-any.whl
+dist/ustatus-<version_number>.tar.gz
+dist/ustatus-<version_number>-py3-none-any.whl
 ```
 
 For a user-wide installation, run
 
 ```
 cd dist
-pip install --upgrade pystatus-<version_number>.tar.gz
+pip install --upgrade ustatus-<version_number>.tar.gz
 ```
 
 ## Configuration
 
 See the [configuration guide](CONFIGURATION.md) for details. An example configuration file can be
-found in [examples/pystatus.toml](examples/pystatus.toml)
+found in [examples/ustatus.toml](examples/ustatus.toml)
 
 ## Is this in an usable state?
 

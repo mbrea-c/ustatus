@@ -5,7 +5,7 @@ from typing import Optional
 
 def notify_error(summary: Optional[str] = None, body: Optional[str] = None):
     if summary is None:
-        summary = "PyStatus error"
+        summary = "ustatus error"
     if body is None:
         body = "An error has ocurred"
 

@@ -1,10 +1,10 @@
 import logging
 from gi.repository import Gtk
-from pystatus.module import Module
+from ustatus.module import Module
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
 from dbus_next.errors import DBusError
-from pystatus.utils.notifications import notify_error
+from ustatus.utils.notifications import notify_error
 
 import asyncio
 

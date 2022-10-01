@@ -1,8 +1,8 @@
 from typing import Callable
 from gi.repository import Gtk, GLib
-from pystatus.config import ModuleConfig
-from pystatus.graphics.battery import Battery
-from pystatus.module import Module
+from ustatus.config import ModuleConfig
+from ustatus.graphics.battery import Battery
+from ustatus.module import Module
 import psutil
 
 

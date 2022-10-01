@@ -6,7 +6,7 @@ import tomli
 import os.path
 import os
 import copy
-from pystatus.schema import cmdline_friendly, schema, bar, get_python_type, module
+from ustatus.schema import cmdline_friendly, schema, bar, get_python_type, module
 
 
 class Config:
@@ -25,7 +25,7 @@ class Config:
         return curr_dict
 
     def _update_with_config_files(self):
-        paths = ["examples/pystatus.toml", get_user_config_path()]
+        paths = ["examples/ustatus.toml", get_user_config_path()]
         while paths:
             new_config = read_config_from_path(paths.pop())
             if new_config:
@@ -33,7 +33,7 @@ class Config:
 
     def _update_with_arguments(self):
         parser = argparse.ArgumentParser(
-            description="Start a pystatus instance of the bar of given name."
+            description="Start a ustatus instance of the bar of given name."
         )
         parser.add_argument(
             "bar_name",
@@ -136,6 +136,6 @@ def read_config_from_path(path: str):
 
 def get_user_config_path():
     if "XDG_CONFIG_HOME" in os.environ:
-        return os.path.expandvars("$XDG_CONFIG_HOME/pystatus/pystatus.toml")
+        return os.path.expandvars("$XDG_CONFIG_HOME/ustatus/ustatus.toml")
     else:
-        return os.path.expandvars("$HOME/.config/pystatus/pystatus.toml")
+        return os.path.expandvars("$HOME/.config/ustatus/ustatus.toml")
