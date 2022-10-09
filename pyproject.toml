@@ -4,6 +4,7 @@ version = "0.1.7"
 description = "GTK-based status window for wayland shells."
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 readme = "README.md"
+homepage = "https://github.com/mbrea-c/ustatus"
 
 [tool.poetry.scripts]
 ustatus = "ustatus.main:main"
@@ -18,7 +19,7 @@ pulsectl-asyncio = "^0.2.0"
 tomli = "^1.2.2"
 dbus-next = "^0.2.3"
 jsonschema = "^4.4.0"
-python-reactive-ui = "^0.1.0"
+python-reactive-ui = { path = "../python-reactive-ui/" }
 
 [tool.poetry.dev-dependencies]
 

@@ -1,4 +1,12 @@
 import asyncio, gbulb, gi, logging, logging.handlers, os
+
+from python_reactive_ui import Component
+from python_reactive_ui.backends.gtk3.root import create_root
+from ustatus.components.module import ReactiveModule
+from ustatus.components.modules.battery import Battery
+from ustatus.components.modules.clock import Clock
+from ustatus.components.modules.test import Test
+from ustatus.module import Module
 from ustatus.utils.swaymsg import get_outputs
 import inspect
 
@@ -321,19 +329,29 @@ class Ustatus(Gtk.Window):
                 raise Exception(f"Orientation {other} not recognized")
 
 
-def create_builtin_module(module_config: ModuleConfig, bar_config: BarConfig, **kwargs):
+def create_builtin_module(**kwargs):
     builtins = {
         "volume": VolumeModule,
-        "battery": BatteryModule,
+        "battery": Battery,
         "mpris": MprisModule,
         "cpu": CpuModule,
         "tray": TrayModule,
         "sway": SwayModule,
         "power_profiles": PowerProfilesModule,
         "power": PowerModule,
+        "test": Test,
+        "clock": Clock,
     }
+    module_config = kwargs["module_config"]
     if module_config.type in builtins:
-        return builtins[module_config.type](config=module_config, **kwargs)
+        module_type = builtins[module_config.type]
+        if issubclass(module_type, Module):
+            return builtins[module_config.type](**kwargs)
+        elif issubclass(module_type, Component):
+            box = Gtk.Box()
+            root = create_root(box)
+            root.render(ReactiveModule(kwargs, [module_type(kwargs)]))
+            return box
     else:
         raise ConfigError(f"Module type {module_config.type} not defined.")
 

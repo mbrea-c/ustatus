@@ -1,5 +1,5 @@
 [bars.status]
-modules_start = ["battery_status", "volume_status"]
+modules_start = ["clock", "battery_status", "volume_status"]
 modules_center = ["power_profiles", "mpris", "cpu"]
 modules_end = ["tray", "power"]
 anchors = ["right"]
@@ -17,6 +17,9 @@ exclusive = true
 
 [modules.volume]
 type = "volume"
+
+[modules.clock]
+type = "clock"
 
 [modules.battery]
 type = "battery"

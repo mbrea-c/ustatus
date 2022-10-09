@@ -1,6 +1,6 @@
 
 # Configuration guide
-Configuration is written in [TOML](https://toml.io/en/). Pystatus will read a file called `pystatus.toml` at `$XDG_CONFIG_HOME/pystatus/pystatus.toml` or at `$HOME/.config/pystatus/pystatus.toml` if the former is not defined.
+Configuration is written in [TOML](https://toml.io/en/). Ustatus will read a file called `ustatus.toml` at `$XDG_CONFIG_HOME/ustatus/ustatus.toml` or at `$HOME/.config/ustatus/ustatus.toml` if the former is not defined.
 
 ## Bar configuration
 All *bar configurations* should be under a table called `bars`. For example, a bar called `mystatusbar` is configured as in the following snippet:
@@ -18,11 +18,11 @@ width = 90
 ```
 As long as the included modules are also defined (see [module configuration section](#module-configuration)), the bar can be started using
 ```bash
-pystatus mystatusbar
+ustatus mystatusbar
 ```
 Any bar configuration setting can be overriden with commandline flags; run
 ```bash
-pystatus --help
+ustatus --help
 ```
 for more details.
 

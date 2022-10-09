@@ -1,4 +1,4 @@
 {
-	"venvPath": "/home/manuel/.cache/pypoetry/virtualenvs",
-	"venv": "pystatus-lOst9ZdS-py3.10"
+  "venvPath": ".",
+  "venv": ".venv"
 }

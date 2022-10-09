@@ -1,16 +1,43 @@
 from gi.repository import Gtk
 from cairo import Operator, FillRule
+from python_reactive_ui import Children
+from python_reactive_ui.backends.gtk3.builtin_component import Gtk3BuiltinComponent
 
 
-class Battery(Gtk.DrawingArea):
+class BatteryIcon(Gtk3BuiltinComponent):
+    def _pre_init(self):
+        self._set_widget(BatteryIconWidget())
+
+    def _receive_props(self, new_props):
+        if "charge" in new_props:
+            self.gtk_widget.set_charge(new_props["charge"])
+        if "ac" in new_props:
+            self.gtk_widget.set_ac(new_props["ac"])
+        if "size_request" in new_props:
+            self.gtk_widget.set_size_request(*new_props["size_request"])
+
+    def receive_children(self, new_children: Children):
+        pass
+
+    def _dismount(self):
+        self._dismounter(self.gtk_widget)
+
+    def _mount(self):
+        self._mounter(self.gtk_widget)
+
+
+class BatteryIconWidget(Gtk.DrawingArea):
     def __init__(self, charge: float = 0, ac: bool = False) -> None:
         super().__init__()
         self.charge = charge
         self.ac = ac
         self.connect("draw", lambda area, context: self.draw_battery(area, context))
 
-    def update(self, charge: float, ac: bool):
+    def set_charge(self, charge: float):
         self.charge = charge
+        self.queue_draw()
+
+    def set_ac(self, ac: bool):
         self.ac = ac
         self.queue_draw()
 
@@ -75,10 +102,10 @@ class Battery(Gtk.DrawingArea):
         context.clip()
         draw_polygon(context, pts_inner)
         context.new_sub_path()
-        context.move_to(0,0)
-        context.line_to(1,0)
-        context.line_to(1,1)
-        context.line_to(0,1)
+        context.move_to(0, 0)
+        context.line_to(1, 0)
+        context.line_to(1, 1)
+        context.line_to(0, 1)
         context.close_path()
         context.clip()
         context.paint()
@@ -104,7 +131,7 @@ class Battery(Gtk.DrawingArea):
                 adjust_point((0.625, 0.375)),
                 adjust_point((1, 0.5)),
                 adjust_point((0.25, 1)),
-                adjust_point((0.375, 0.625))
+                adjust_point((0.375, 0.625)),
             ]
             context.set_line_width(0.03)
             draw_polygon(context, pts)
@@ -114,6 +141,6 @@ class Battery(Gtk.DrawingArea):
             context.set_operator(Operator.SOURCE)
             context.fill_preserve()
             context.set_source_rgba(
-                1-fg_color.red, 1-fg_color.green, 1-fg_color.blue, fg_color.alpha
+                1 - fg_color.red, 1 - fg_color.green, 1 - fg_color.blue, fg_color.alpha
             )
             context.stroke()

@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 from gi.repository import Gtk, GLib
 
-from ustatus.config import ModuleConfig
+from ustatus.config import BarConfig, ModuleConfig
 
 
 class Module(Gtk.Box):
@@ -9,7 +9,8 @@ class Module(Gtk.Box):
         self,
         gtk_orientation: Gtk.Orientation,
         toggle_modal: Callable,
-        config: ModuleConfig,
+        module_config: ModuleConfig,
+        bar_config: BarConfig,
         bar_width: int,
         output,
         module_widget: Optional[Gtk.Widget] = None,
@@ -18,7 +19,7 @@ class Module(Gtk.Box):
         self.gtk_orientation = gtk_orientation
         self.toggle_modal = toggle_modal
         self.bar_width = bar_width
-        self.config = config
+        self.config = module_config
         self.output = output
         if self.config.show_label:
             self.add(Gtk.Label(label=self.config.label))
