@@ -154,11 +154,11 @@ class Ustatus(Gtk.Application):
             self.box.pack_end(child=module, expand=False, fill=False, padding=0)
 
     def show_status(self):
-        self.show()
+        self.window.show()
 
     def hide_status(self):
         self.hide_modal()
-        self.hide()
+        self.window.hide()
 
     def show_modal(self, widget: Gtk.Widget):
         if self.modal_widget:
