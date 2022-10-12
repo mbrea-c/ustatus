@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ustatus"
-version = "0.1.8"
+version = "0.1.9"
 description = "GTK-based status window for wayland shells."
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 readme = "README.md"
