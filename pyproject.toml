@@ -19,7 +19,11 @@ pulsectl-asyncio = "^0.2.0"
 tomli = "^1.2.2"
 dbus-next = "^0.2.3"
 jsonschema = "^4.4.0"
-python-reactive-ui = { path = "../python-reactive-ui/" }
+pulsectl = "^22.3.2"
+python-reactive-ui = "^0.2.9"
+#python-reactive-ui = { path = "../python-reactive-ui/" }
+python-dbus-system-api = "^0.1.0"
+#python-dbus-system-api = { path = "../python-dbus-system-api/" }
 
 [tool.poetry.dev-dependencies]
 
