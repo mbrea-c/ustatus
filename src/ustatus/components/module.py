@@ -10,10 +10,11 @@ from ustatus.config import ModuleConfig
 class ReactiveModule(Component):
     def _render(self, props, children):
         module_config = props["module_config"]
+        module_type = module_config.type
         match children:
             case [child]:
                 return Box(
-                    {"css_classes": "module", "orientation": "vertical"},
+                    {"css_classes": ["module", module_type], "orientation": "vertical"},
                     [
                         *(
                             (Label({"text": module_config.label}),)

@@ -43,10 +43,11 @@ class Volume(Component):
         )
 
         return Box(
-            {"hexpand": True, "halign": "center", "size_request": (-1, 60)},
+            {"hexpand": True, "halign": "fill", "size_request": (-1, 60)},
             [
                 Box(
                     {
+                        "css_classes": ["sink"],
                         "orientation": "vertical",
                         "opacity": 0.5 if sink["mute"].value == 1 else 1.0,
                         "tooltip_text": sink["description"].value,
